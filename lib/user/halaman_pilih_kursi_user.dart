@@ -12,7 +12,7 @@ class HalamanPilihKursiUser extends StatefulWidget {
   final String tanggal;
   final int harga;
   final int idRute;
-  final Map<String, dynamic> jadwalData; // Data API untuk jadwal yang dipilih
+  final Map<String, dynamic> jadwalData;
 
   const HalamanPilihKursiUser({
     super.key,
@@ -35,7 +35,6 @@ class _HalamanPilihKursiUserState extends State<HalamanPilihKursiUser> {
   List<int> kursiTerpesan = []; // kursi yang terisi dari API
   final formatter = NumberFormat.decimalPattern();
 
-  // Layout kursi (4 kolom + steering)
   final List<List<dynamic>> seatLayout = [
     [1, 2, null, 'steering'],
     [null, 3, 4, 5],
@@ -51,9 +50,11 @@ class _HalamanPilihKursiUserState extends State<HalamanPilihKursiUser> {
   }
 
   void setKursiTerisiFromApi() {
-    // Ambil kursi yang statusnya "terisi"
     kursiTerpesan = (widget.jadwalData['kursi'] as List)
-        .where((k) => k['status'] == 'terisi')
+        .where((k) {
+          final status = k['status'] ?? 'kosong';
+          return status == 'disable' || status == 'ditolak';
+        })
         .map<int>((k) => k['no_kursi'] as int)
         .toList();
   }
@@ -227,8 +228,17 @@ class _HalamanPilihKursiUserState extends State<HalamanPilihKursiUser> {
   }
 
   Widget buildSeat(int seatNumber) {
-    final isSelected = kursiDipilih.contains(seatNumber);
     final isUnavailable = kursiTerpesan.contains(seatNumber);
+    final isSelected = kursiDipilih.contains(seatNumber);
+
+    Color seatColor;
+    if (isUnavailable) {
+      seatColor = Colors.grey;
+    } else if (isSelected) {
+      seatColor = Colors.blue;
+    } else {
+      seatColor = Colors.green;
+    }
 
     return GestureDetector(
       onTap: isUnavailable
@@ -247,11 +257,7 @@ class _HalamanPilihKursiUserState extends State<HalamanPilihKursiUser> {
         height: 50,
         margin: const EdgeInsets.all(6),
         decoration: BoxDecoration(
-          color: isUnavailable
-              ? Colors.grey
-              : isSelected
-              ? Colors.blue
-              : Colors.green,
+          color: seatColor,
           borderRadius: BorderRadius.circular(8),
         ),
         alignment: Alignment.center,

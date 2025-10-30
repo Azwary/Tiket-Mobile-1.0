@@ -27,6 +27,7 @@ class _TiketSayaPageState extends State<TiketSayaPage> {
   Future<void> fetchTiket() async {
     if (!mounted) return;
     setState(() => loading = true);
+
     try {
       final response = await http.get(
         Uri.parse('https://fifafel.my.id/api/tiket/${widget.idPenumpang}'),
@@ -40,45 +41,69 @@ class _TiketSayaPageState extends State<TiketSayaPage> {
           List<Map<String, dynamic>> tiketDariApi =
               List<Map<String, dynamic>>.from(data['data']);
 
+          // Tambahkan tiket baru (kalau ada)
           if (widget.tiketBaru != null) {
             tiketDariApi.insert(0, widget.tiketBaru!);
           }
 
           final now = DateTime.now();
+
+          // ✅ Filter tiket yang masih valid (belum lewat waktu keberangkatan)
           tiketDariApi = tiketDariApi.where((t) {
             String status = t['status'].toString().toLowerCase();
-            if (status == 'berhasil') status = 'aktif';
-            if (status != 'menunggu' && status != 'aktif') return false;
+
+            // hanya izinkan status tertentu
+            if (status != 'menunggu' &&
+                status != 'berhasil' &&
+                status != 'ditolak' &&
+                status != 'ditempat') {
+              return false;
+            }
 
             try {
-              final keberangkatanStr =
-                  '${t['tanggal_keberangkatan']} ${t['jam']}';
-              final keberangkatan = DateTime.parse(keberangkatanStr);
+              final tanggal = t['tanggal_keberangkatan'].toString();
+              final jam = t['jam'].toString().padLeft(5, '0');
+              final keberangkatanStr = '${tanggal}T$jam:00';
+              final keberangkatan = DateTime.parse(keberangkatanStr).toLocal();
 
-              return now.isBefore(
-                keberangkatan.add(const Duration(minutes: 0)),
+              print(
+                '🕓 Sekarang: $now | Keberangkatan: $keberangkatan | Status: $status',
               );
-            } catch (_) {
+
+              // tampilkan hanya jika waktu keberangkatan > waktu sekarang
+              return keberangkatan.isAfter(now);
+            } catch (e) {
+              print('⚠️ Gagal parse tanggal tiket: $e');
               return false;
             }
           }).toList();
+
+          // Urutkan tiket berdasarkan nomor tiket terbaru
+          int extractTicketNumber(String tiket) {
+            final match = RegExp(r'(\d+)$').firstMatch(tiket);
+            return match != null ? int.parse(match.group(1)!) : 0;
+          }
+
+          tiketDariApi.sort((a, b) {
+            final noA = extractTicketNumber(a['nomor_tiket'].toString());
+            final noB = extractTicketNumber(b['nomor_tiket'].toString());
+            return noB.compareTo(noA);
+          });
 
           if (!mounted) return;
           setState(() {
             daftarTiket = tiketDariApi;
           });
         } else {
-          if (!mounted) return;
           setState(() => daftarTiket = []);
         }
       } else {
-        if (!mounted) return;
         setState(() => daftarTiket = []);
       }
     } catch (e) {
       if (!mounted) return;
       setState(() => daftarTiket = []);
-      print('Error fetch tiket: $e');
+      print('❌ Error fetch tiket: $e');
     } finally {
       if (!mounted) return;
       setState(() => loading = false);
@@ -96,7 +121,7 @@ class _TiketSayaPageState extends State<TiketSayaPage> {
       backgroundColor: const Color(0xFFF5F6FA),
       appBar: AppBar(
         title: Text(
-          'Tiket Menunggu',
+          'Tiket Saya',
           style: GoogleFonts.poppins(
             fontWeight: FontWeight.w600,
             color: Colors.white,
@@ -112,7 +137,7 @@ class _TiketSayaPageState extends State<TiketSayaPage> {
             : daftarTiket.isEmpty
             ? Center(
                 child: Text(
-                  'Tidak ada tiket menunggu',
+                  'Tidak ada tiket tersedia',
                   style: GoogleFonts.poppins(
                     fontSize: 16,
                     color: Colors.grey[600],
@@ -149,7 +174,7 @@ class _TiketSayaPageState extends State<TiketSayaPage> {
                       ),
                       child: Column(
                         children: [
-                          // Header Tanggal Pemesanan
+                          // Header tanggal pemesanan
                           Container(
                             width: double.infinity,
                             padding: const EdgeInsets.symmetric(
@@ -181,7 +206,7 @@ class _TiketSayaPageState extends State<TiketSayaPage> {
                             ),
                           ),
 
-                          // Isi Tiket
+                          // Isi tiket
                           Padding(
                             padding: const EdgeInsets.all(16),
                             child: Row(
@@ -254,8 +279,7 @@ class _TiketSayaPageState extends State<TiketSayaPage> {
                                   ),
                                 ),
 
-                                // Status & harga
-                                // Status & harga
+                                // Status dan harga
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
@@ -265,17 +289,9 @@ class _TiketSayaPageState extends State<TiketSayaPage> {
                                         vertical: 5,
                                       ),
                                       decoration: BoxDecoration(
-                                        color:
-                                            (ticket['status']
-                                                        .toString()
-                                                        .toLowerCase() ==
-                                                    'berhasil' ||
-                                                ticket['status']
-                                                        .toString()
-                                                        .toLowerCase() ==
-                                                    'aktif')
-                                            ? Colors.green
-                                            : Colors.orange,
+                                        color: _statusColor(
+                                          ticket['status'].toString(),
+                                        ),
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                       child: Text(
@@ -309,6 +325,14 @@ class _TiketSayaPageState extends State<TiketSayaPage> {
               ),
       ),
     );
+  }
+
+  Color _statusColor(String status) {
+    final s = status.toLowerCase();
+    if (s == 'berhasil' || s == 'aktif') return Colors.green;
+    if (s == 'ditolak') return Colors.red;
+    if (s == 'ditempat') return Colors.blueGrey;
+    return Colors.orange;
   }
 
   String _formatRupiah(dynamic value) {

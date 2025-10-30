@@ -133,16 +133,30 @@ class _HalamanPetugasState extends State<HalamanPetugas> {
     if (response.statusCode == 200) {
       showDialog(
         context: context,
-        builder: (_) => const AlertDialog(
-          title: Text("✅ Berhasil"),
-          content: Text("Pemesanan berhasil disimpan!"),
+        builder: (_) => AlertDialog(
+          title: const Text("✅ Berhasil"),
+          content: const Text("Pemesanan berhasil disimpan!"),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context); // Tutup dialog
+                setState(() {
+                  // Reset semua input agar bisa input baru
+                  showDenah = false;
+                  selectedSeats.clear();
+                  penumpangPerKursi.clear();
+                  selectedRute = null;
+                  selectedJamId = null;
+                  selectedDate = null;
+                  jadwalList.clear();
+                  kursiTersedia.clear();
+                });
+              },
+              child: const Text("OK"),
+            ),
+          ],
         ),
       );
-      setState(() {
-        showDenah = false;
-        selectedSeats = [];
-        penumpangPerKursi.clear();
-      });
     } else {
       showDialog(
         context: context,
