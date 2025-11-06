@@ -149,6 +149,34 @@ class _HalamanKonfirmasiPembayaranState
     }
   }
 
+  // 🔓 Fungsi unlock kursi manual/back
+  Future<void> _unlockKursi() async {
+    try {
+      final idJadwal = widget.detailPenumpang.first['id_jadwal'];
+      final kursiIds = widget.detailPenumpang
+          .map((p) => p['id_kursi'].toString())
+          .toList();
+
+      final uri = Uri.parse('https://fifafel.my.id/api/unlock-kursi');
+      final response = await http.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({'id_jadwal': idJadwal, 'kursi': kursiIds}),
+      );
+
+      if (response.statusCode == 200) {
+        print("✅ Kursi berhasil di-unlock saat kembali");
+      } else {
+        print("⚠️ Gagal unlock kursi: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("❌ Terjadi kesalahan unlock kursi: $e");
+    }
+  }
+
   void _showBuktiTerkirimDialog(int idPenumpang) {
     showDialog(
       context: context,
@@ -173,10 +201,9 @@ class _HalamanKonfirmasiPembayaranState
             ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pop(); // tutup dialog
-                Navigator.of(context).popUntil(
-                  (route) => route.isFirst,
-                ); // kembali ke halaman utama
-                // ganti tab ke Tiket Saya
+                Navigator.of(
+                  context,
+                ).popUntil((route) => route.isFirst); // ke halaman utama
                 HalamanUtamaUser.globalKey.currentState?.setTabIndex(1);
               },
               style: ElevatedButton.styleFrom(
@@ -213,29 +240,11 @@ class _HalamanKonfirmasiPembayaranState
   }
 
   void _showWaktuHabisDialog() async {
-    try {
-      final idJadwal = widget.detailPenumpang.first['id_jadwal'];
-      final kursiIds = widget.detailPenumpang
-          .map((p) => p['id_kursi'].toString())
-          .toList();
+    await _unlockKursi(); // unlock otomatis kalau waktu habis
 
-      final uri = Uri.parse('https://fifafel.my.id/api/unlock-kursi');
-      await http.post(
-        uri,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: jsonEncode({'id_jadwal': idJadwal, 'kursi': kursiIds}),
-      );
-    } catch (e) {
-      print("Gagal unlock kursi otomatis: $e");
-    }
-
-    // tampilkan dialog waktu habis
     showDialog(
       context: context,
-      barrierDismissible: false, // agar tidak bisa ditutup tanpa menekan tombol
+      barrierDismissible: false,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         content: Column(
@@ -259,9 +268,8 @@ class _HalamanKonfirmasiPembayaranState
             const SizedBox(height: 18),
             ElevatedButton(
               onPressed: () {
-                Navigator.of(context).pop(); // tutup dialog
+                Navigator.of(context).pop();
                 Navigator.of(context).popUntil((route) => route.isFirst);
-                // kembali ke halaman utama
                 HalamanUtamaUser.globalKey.currentState?.setTabIndex(0);
               },
               style: ElevatedButton.styleFrom(
@@ -280,7 +288,6 @@ class _HalamanKonfirmasiPembayaranState
       ),
     );
 
-    // otomatis kembali setelah 5 detik tanpa perlu tekan tombol
     Future.delayed(const Duration(seconds: 5), () {
       if (mounted) {
         Navigator.of(context).popUntil((route) => route.isFirst);
@@ -299,71 +306,85 @@ class _HalamanKonfirmasiPembayaranState
   Widget build(BuildContext context) {
     final waktuHabis = _remainingSeconds == 0;
 
-    return Scaffold(
-      appBar: AppBar(
-        elevation: 3,
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFFA00000), Color(0xFF700000)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        title: Text(
-          "Konfirmasi Pembayaran",
-          style: GoogleFonts.poppins(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        leading: const BackButton(color: Colors.white),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: ListView(
-          children: [
-            _buildTimer(waktuHabis),
-            const SizedBox(height: 20),
-            _buildDetailCard(),
-            const SizedBox(height: 14),
-            _buildTransferCard(),
-            const SizedBox(height: 14),
-            _buildUploadCard(waktuHabis),
-            const SizedBox(height: 25),
-            Center(
-              child: ElevatedButton(
-                onPressed: (waktuHabis || pickedFile == null || _isUploading)
-                    ? null
-                    : _uploadBukti,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF960000),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 80,
-                    vertical: 14,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: _isUploading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text(
-                        "Kirim Bukti Pembayaran",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+    return WillPopScope(
+      onWillPop: () async {
+        await _unlockKursi(); // unlock kursi sebelum keluar
+        return true;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          elevation: 3,
+          flexibleSpace: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFFA00000), Color(0xFF700000)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
             ),
-          ],
+          ),
+          title: Text(
+            "Konfirmasi Pembayaran",
+            style: GoogleFonts.poppins(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () async {
+              await _unlockKursi();
+              Navigator.of(context).pop();
+            },
+          ),
+        ),
+        body: Padding(
+          padding: const EdgeInsets.all(16),
+          child: ListView(
+            children: [
+              _buildTimer(waktuHabis),
+              const SizedBox(height: 20),
+              _buildDetailCard(),
+              const SizedBox(height: 14),
+              _buildTransferCard(),
+              const SizedBox(height: 14),
+              _buildUploadCard(waktuHabis),
+              const SizedBox(height: 25),
+              Center(
+                child: ElevatedButton(
+                  onPressed: (waktuHabis || pickedFile == null || _isUploading)
+                      ? null
+                      : _uploadBukti,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF960000),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 80,
+                      vertical: 14,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: _isUploading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text(
+                          "Kirim Bukti Pembayaran",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
+
+  // --- Bagian UI Kartu dan Komponen ---
 
   Widget _buildDetailCard() => _buildCard(
     title: "Detail Pemesanan",
