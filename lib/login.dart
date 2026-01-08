@@ -17,7 +17,6 @@ class Login extends StatefulWidget {
 class _LoginState extends State<Login> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-
   bool isPasswordVisible = false;
   bool isLoading = false;
 
@@ -25,15 +24,19 @@ class _LoginState extends State<Login> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         title: Text(
           "Lupa Username / Password",
-          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
         ),
-        content: Text(" ", style: GoogleFonts.poppins()),
+        content: Text(
+          "Silakan hubungi admin untuk reset akun Anda.",
+          style: GoogleFonts.poppins(fontSize: 14),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text("Tutup", style: GoogleFonts.poppins()),
+            child: Text("Tutup", style: GoogleFonts.poppins(color: Colors.red)),
           ),
         ],
       ),
@@ -45,7 +48,7 @@ class _LoginState extends State<Login> {
     final password = _passwordController.text.trim();
 
     if (username.isEmpty || password.isEmpty) {
-      _showError("username dan password wajib diisi.");
+      _showError("Username dan password wajib diisi.");
       return;
     }
 
@@ -53,15 +56,12 @@ class _LoginState extends State<Login> {
 
     try {
       final response = await http.post(
-        // Uri.parse('http://fifafel.my.id/api/login'),
         Uri.parse('https://fifafel.my.id/api/login'),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({"username": username, "password": password}),
       );
 
       final result = jsonDecode(response.body);
-      debugPrint('Login Response: $result');
-
       if (response.statusCode == 200 && result['status'] == true) {
         final prefs = await SharedPreferences.getInstance();
         final role = result['role'];
@@ -69,7 +69,6 @@ class _LoginState extends State<Login> {
 
         if (role == 'penumpang') {
           final idPenumpang = userData['id_penumpang'] ?? userData['id'];
-
           await prefs.setInt('id_penumpang', idPenumpang);
           await prefs.setString('nama_penumpang', userData['nama_penumpang']);
           await prefs.setString('username', userData['username']);
@@ -94,7 +93,6 @@ class _LoginState extends State<Login> {
         _showError(result['message'] ?? "Login gagal.");
       }
     } catch (e) {
-      debugPrint("Login Error: $e");
       _showError("Terjadi kesalahan jaringan.");
     } finally {
       setState(() => isLoading = false);
@@ -105,15 +103,16 @@ class _LoginState extends State<Login> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         title: Text(
           "Login Gagal",
-          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
         ),
         content: Text(message, style: GoogleFonts.poppins()),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text("Tutup", style: GoogleFonts.poppins()),
+            child: Text("Tutup", style: GoogleFonts.poppins(color: Colors.red)),
           ),
         ],
       ),
@@ -124,198 +123,202 @@ class _LoginState extends State<Login> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        padding: const EdgeInsets.all(24),
         width: double.infinity,
         height: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.bottomLeft,
-            end: Alignment.topRight,
-            colors: [Color(0xFF8B0000), Color(0xFFB71C1C)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFB71C1C), Color(0xFFE53935)],
           ),
         ),
         child: Center(
           child: SingleChildScrollView(
-            child: Card(
-              elevation: 10,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 24),
+              padding: const EdgeInsets.all(26),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(22),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.15),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 28,
-                  vertical: 36,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Selamat Datang',
-                      style: GoogleFonts.poppins(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    const CircleAvatar(
-                      radius: 70,
-                      backgroundImage: AssetImage('images/logo.jpg'),
-                    ),
-                    const SizedBox(height: 28),
+              child: Column(
+                children: [
+                  const SizedBox(height: 8),
 
-                    // username
-                    TextField(
-                      controller: _usernameController,
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        color: Colors.black,
+                  // LOGO
+                  const CircleAvatar(
+                    radius: 45,
+                    backgroundImage: AssetImage('images/logo.jpg'),
+                  ),
+                  const SizedBox(height: 18),
+
+                  // TITLE
+                  Text(
+                    "Selamat Datang di Fifafel Trans",
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.poppins(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+
+                  // SUBTITLE
+                  Text(
+                    "Silakan masukkan username dan password Anda",
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      color: Colors.grey[700],
+                    ),
+                  ),
+                  const SizedBox(height: 26),
+
+                  // USERNAME
+                  TextField(
+                    controller: _usernameController,
+                    decoration: InputDecoration(
+                      hintText: 'Username',
+                      prefixIcon: const Icon(Icons.person_outline),
+                      filled: true,
+                      fillColor: Colors.grey[100],
+                      contentPadding: const EdgeInsets.all(15),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: Colors.grey.shade400),
                       ),
-                      decoration: InputDecoration(
-                        labelText: 'username',
-                        labelStyle: GoogleFonts.poppins(
-                          color: Colors.grey[700],
-                          fontSize: 14,
-                        ),
-                        hintText: 'Masukkan username',
-                        hintStyle: GoogleFonts.poppins(color: Colors.grey[600]),
-                        filled: true,
-                        fillColor: Colors.grey[100],
-                        prefixIcon: const Icon(
-                          Icons.person,
-                          color: Colors.grey,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(
+                            color: Color(0xFF505A6E), width: 1.5),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                  ),
+                  const SizedBox(height: 14),
 
-                    // Password
-                    TextField(
-                      controller: _passwordController,
-                      obscureText: !isPasswordVisible,
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        color: Colors.black,
+                  // PASSWORD
+                  TextField(
+                    controller: _passwordController,
+                    obscureText: !isPasswordVisible,
+                    decoration: InputDecoration(
+                      hintText: 'Password',
+                      prefixIcon: const Icon(Icons.lock_outline),
+                      suffixIcon: IconButton(
+                        onPressed: () => setState(
+                            () => isPasswordVisible = !isPasswordVisible),
+                        icon: Icon(
+                          isPasswordVisible
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                        ),
                       ),
-                      decoration: InputDecoration(
-                        labelText: 'Password',
-                        labelStyle: GoogleFonts.poppins(
-                          color: Colors.grey[700],
-                          fontSize: 14,
-                        ),
-                        hintText: 'Masukkan password',
-                        hintStyle: GoogleFonts.poppins(color: Colors.grey[600]),
-                        filled: true,
-                        fillColor: Colors.grey[100],
-                        prefixIcon: const Icon(Icons.lock, color: Colors.grey),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        suffixIcon: IconButton(
-                          onPressed: () {
-                            setState(
-                              () => isPasswordVisible = !isPasswordVisible,
-                            );
-                          },
-                          icon: Icon(
-                            isPasswordVisible
-                                ? Icons.visibility
-                                : Icons.visibility_off,
-                            color: Colors.grey[700],
-                          ),
-                        ),
+                      filled: true,
+                      fillColor: Colors.grey[100],
+                      contentPadding: const EdgeInsets.all(15),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: Colors.grey.shade400),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(
+                            color: Color(0xFF505A6E), width: 1.5),
                       ),
                     ),
-                    const SizedBox(height: 12),
+                  ),
 
-                    Align(
+                  const SizedBox(height: 10),
+                  GestureDetector(
+                    onTap: showForgotDialog,
+                    child: Align(
                       alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: showForgotDialog,
+                      child: Text(
+                        "Lupa username dan password?",
+                        style: GoogleFonts.poppins(
+                          color: Colors.grey[700],
+                          fontSize: 13,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 22),
+
+                  // LOGIN BUTTON
+                  GestureDetector(
+                    onTap: isLoading ? null : loginUser,
+                    child: Container(
+                      width: double.infinity,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFFF512F), Color(0xFFDD2476)],
+                        ),
+                        borderRadius: BorderRadius.circular(28),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.redAccent.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: isLoading
+                            ? const CircularProgressIndicator(
+                                color: Colors.white, strokeWidth: 2)
+                            : Text(
+                                "LOGIN",
+                                style: GoogleFonts.poppins(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // REGISTER
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        "Belum punya akun? ",
+                        style: GoogleFonts.poppins(fontSize: 14),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const RegisterPage()),
+                          );
+                        },
                         child: Text(
-                          'Lupa username dan password?',
+                          "Daftar",
                           style: GoogleFonts.poppins(
-                            fontStyle: FontStyle.italic,
-                            fontWeight: FontWeight.w500,
                             color: Colors.red[700],
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-
-                    ElevatedButton(
-                      onPressed: isLoading ? null : loginUser,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red[700],
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 36,
-                          vertical: 16,
-                        ),
-                        elevation: 6,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        shadowColor: Colors.redAccent.withOpacity(0.3),
-                      ),
-                      child: isLoading
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : Text(
-                              'LOGIN',
-                              style: GoogleFonts.poppins(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1,
-                              ),
-                            ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          "Tidak punya akun? ",
-                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.w600,
                             fontSize: 14,
-                            color: Colors.grey[800],
                           ),
                         ),
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const RegisterPage(),
-                              ),
-                            );
-                          },
-                          child: Text(
-                            "Daftar",
-                            style: GoogleFonts.poppins(
-                              color: Colors.red[700],
-                              fontWeight: FontWeight.bold,
-                              decoration: TextDecoration.underline,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 4),
+                ],
               ),
             ),
           ),

@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'HalamanPembayaranUser.dart';
+import 'package:tiket/core/app_bar_costum.dart';
 
 class HalamanPilihKursiUser extends StatefulWidget {
   final String dari;
@@ -32,7 +33,7 @@ class HalamanPilihKursiUser extends StatefulWidget {
 
 class _HalamanPilihKursiUserState extends State<HalamanPilihKursiUser> {
   final List<int> kursiDipilih = [];
-  List<int> kursiTerpesan = []; // kursi yang terisi dari API
+  List<int> kursiTerpesan = [];
   final formatter = NumberFormat.decimalPattern();
 
   final List<List<dynamic>> seatLayout = [
@@ -55,26 +56,15 @@ class _HalamanPilihKursiUserState extends State<HalamanPilihKursiUser> {
           final status = k['status'] ?? 'kosong';
           return status == 'disable' || status == 'ditolak';
         })
-        .map<int>((k) => k['no_kursi'] as int)
+        .map<int>((k) => int.parse(k['no_kursi'].toString()))
         .toList();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE8E8E8),
-      appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 150, 0, 0),
-        elevation: 1,
-        leading: const BackButton(color: Colors.white),
-        title: Text(
-          'Pilih Kursi',
-          style: GoogleFonts.poppins(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
+      appBar: const AppBarCustom(title: 'Pilih Kursi'),
+
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -132,15 +122,25 @@ class _HalamanPilihKursiUserState extends State<HalamanPilihKursiUser> {
                           children: row.map((item) {
                             if (item == null)
                               return const SizedBox(width: 50, height: 50);
+
                             if (item == 'steering') {
                               return Container(
                                 width: 50,
                                 height: 50,
                                 margin: const EdgeInsets.all(6),
                                 alignment: Alignment.center,
-                                child: const Icon(Icons.drive_eta, size: 30),
+                                decoration: BoxDecoration(
+                                  color: Colors.black12,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(
+                                  Icons.rotate_right, // ikon setir
+                                  size: 28,
+                                  color: Colors.black54,
+                                ),
                               );
                             }
+
                             return buildSeat(item as int);
                           }).toList(),
                         ),

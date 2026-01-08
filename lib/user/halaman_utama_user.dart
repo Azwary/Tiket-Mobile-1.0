@@ -10,6 +10,7 @@ import 'dart:convert';
 import 'jadwal_user.dart';
 import 'profile.dart';
 import 'tiket.dart';
+import 'package:tiket/core/footer.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -155,7 +156,6 @@ class _HalamanUtamaUserState extends State<HalamanUtamaUser> {
   Widget build(BuildContext context) {
     Widget currentBody;
 
-    // Jika idPenumpang belum siap, tampilkan CircularProgressIndicator
     if (idPenumpang == null) {
       currentBody = const Center(child: CircularProgressIndicator());
     } else {
@@ -170,20 +170,11 @@ class _HalamanUtamaUserState extends State<HalamanUtamaUser> {
 
     return Scaffold(
       body: currentBody,
-      bottomNavigationBar: BottomNavigationBar(
+
+      bottomNavigationBar: Footer(
         currentIndex: currentIndex,
         onTap: (i) => setState(() => currentIndex = i),
-        selectedItemColor: Colors.white,
-        unselectedItemColor: Colors.white70,
-        backgroundColor: merahUtama,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Beranda'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.receipt),
-            label: 'Tiket Saya',
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profil'),
-        ],
+        primaryColor: merahUtama,
       ),
     );
   }
@@ -205,12 +196,12 @@ class _HalamanUtamaUserState extends State<HalamanUtamaUser> {
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Card(
-              elevation: 5,
+              elevation: 6,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(20),
               ),
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(20),
                 child: _buildFormRute(context),
               ),
             ),
@@ -221,7 +212,7 @@ class _HalamanUtamaUserState extends State<HalamanUtamaUser> {
               onPressed: _onPesanPressed,
               icon: const Icon(Icons.search, color: Colors.white),
               label: Text(
-                "Pesan Tiket",
+                "Cari Jadwal Bus",
                 style: GoogleFonts.poppins(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -270,145 +261,202 @@ class _HalamanUtamaUserState extends State<HalamanUtamaUser> {
     );
   }
 
+  // ================= CARD RUTE (DIPERBAIKI UI SAJA) =================
   Widget _buildFormRute(BuildContext context) {
     return Form(
       key: formKey,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 🔹 Autocomplete "Dari"
-          Autocomplete<String>(
-            optionsBuilder: (TextEditingValue textEditingValue) {
-              if (textEditingValue.text.isEmpty) {
-                return daftarKotaAsal;
-              }
-              return daftarKotaAsal.where(
-                (kota) => kota.toLowerCase().contains(
-                  textEditingValue.text.toLowerCase(),
-                ),
-              );
-            },
-            fieldViewBuilder:
-                (context, controller, focusNode, onFieldSubmitted) {
-                  dariController.text = controller.text;
-
-                  focusNode.addListener(() {
-                    if (focusNode.hasFocus) {
-                      setState(() {});
-                    }
-                  });
-
-                  return TextFormField(
-                    controller: controller,
-                    focusNode: focusNode,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      labelText: "Dari",
-                      prefixIcon: Icon(Icons.my_location),
-                    ),
-                    validator: (v) =>
-                        v == null || v.isEmpty ? "Masukkan kota asal" : null,
-                    onChanged: (v) {
-                      dari = v;
-                      updateKotaTujuan(v);
-                    },
-                  );
-                },
-            onSelected: (String selection) {
-              dari = selection;
-              updateKotaTujuan(selection);
-            },
+          Text(
+            "Cari Rute Perjalanan",
+            style: GoogleFonts.poppins(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: merahUtama,
+            ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 18),
 
-          // 🔹 Autocomplete "Ke"
-          Autocomplete<String>(
-            optionsBuilder: (TextEditingValue textEditingValue) {
-              if (textEditingValue.text.isEmpty) {
-                return daftarKotaTujuan;
-              }
-              return daftarKotaTujuan.where(
-                (kota) => kota.toLowerCase().contains(
-                  textEditingValue.text.toLowerCase(),
-                ),
-              );
-            },
-            fieldViewBuilder:
-                (context, controller, focusNode, onFieldSubmitted) {
-                  keController.text = controller.text;
-
-                  focusNode.addListener(() {
-                    if (focusNode.hasFocus) {
-                      setState(() {});
-                    }
-                  });
-
-                  return TextFormField(
-                    controller: controller,
-                    focusNode: focusNode,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      labelText: "Ke",
-                      prefixIcon: Icon(Icons.flag),
-                    ),
-                    validator: (v) =>
-                        v == null || v.isEmpty ? "Masukkan kota tujuan" : null,
-                    onChanged: (v) => ke = v,
-                  );
-                },
-            onSelected: (String selection) {
-              ke = selection;
-            },
-          ),
-
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: TextFormField(
-                  controller: tanggalController,
-                  readOnly: true,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: "Tanggal Perjalanan",
-                    suffixIcon: Icon(Icons.calendar_today),
+          // ===== DARI =====
+          _buildInputCard(
+            icon: Icons.my_location,
+            label: "Keberangkatan",
+            child: Autocomplete<String>(
+              optionsBuilder: (TextEditingValue textEditingValue) {
+                if (textEditingValue.text.isEmpty) return daftarKotaAsal;
+                return daftarKotaAsal.where(
+                  (kota) => kota.toLowerCase().contains(
+                    textEditingValue.text.toLowerCase(),
                   ),
-                  onTap: () async {
-                    final picked = await showDatePicker(
-                      context: context,
-                      initialDate: DateTime.now(),
-                      firstDate: DateTime.now(),
-                      lastDate: DateTime(2100),
-                      locale: const Locale('id'),
+                );
+              },
+              fieldViewBuilder:
+                  (context, controller, focusNode, onFieldSubmitted) {
+                    dariController.text = controller.text;
+                    return TextFormField(
+                      controller: controller,
+                      focusNode: focusNode,
+                      style: GoogleFonts.poppins(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      decoration: _inputDecoration(
+                        "Pilih Terlminal Keberangkatan",
+                      ),
+                      validator: (v) => v == null || v.isEmpty
+                          ? "Masukkan Terminal Keberangkatan"
+                          : null,
+                      onChanged: (v) {
+                        dari = v;
+                        updateKotaTujuan(v);
+                      },
                     );
-                    if (picked != null) _setTanggal(picked);
                   },
-                  validator: (v) => v == null || v.isEmpty
-                      ? "Pilih tanggal perjalanan"
-                      : null,
-                ),
-              ),
-              const SizedBox(width: 8),
-              ElevatedButton(
-                onPressed: () => _setTanggal(DateTime.now()),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: merahUtama,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 14,
+              onSelected: (String selection) {
+                dari = selection;
+                updateKotaTujuan(selection);
+              },
+            ),
+          ),
+
+          const SizedBox(height: 14),
+
+          // ===== KE =====
+          _buildInputCard(
+            icon: Icons.flag,
+            label: "Tujuan",
+            child: Autocomplete<String>(
+              optionsBuilder: (TextEditingValue textEditingValue) {
+                if (textEditingValue.text.isEmpty) return daftarKotaTujuan;
+                return daftarKotaTujuan.where(
+                  (kota) => kota.toLowerCase().contains(
+                    textEditingValue.text.toLowerCase(),
                   ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+                );
+              },
+              fieldViewBuilder:
+                  (context, controller, focusNode, onFieldSubmitted) {
+                    keController.text = controller.text;
+                    return TextFormField(
+                      controller: controller,
+                      focusNode: focusNode,
+                      style: GoogleFonts.poppins(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      decoration: _inputDecoration("Pilih Terminal Tujuan"),
+                      validator: (v) => v == null || v.isEmpty
+                          ? "Masukkan Terminal tujuan"
+                          : null,
+                      onChanged: (v) => ke = v,
+                    );
+                  },
+              onSelected: (String selection) {
+                ke = selection;
+              },
+            ),
+          ),
+
+          const SizedBox(height: 14),
+
+          // ===== TANGGAL =====
+          _buildInputCard(
+            icon: Icons.calendar_today,
+            label: "Tanggal Perjalanan",
+            trailing: ElevatedButton(
+              onPressed: () => _setTanggal(DateTime.now()),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: merahUtama,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
                 ),
-                child: const Text(
-                  "Hari Ini",
-                  style: TextStyle(color: Colors.white, fontSize: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
                 ),
+                elevation: 0,
               ),
-            ],
+              child: const Text(
+                "Hari Ini",
+                style: TextStyle(color: Colors.white, fontSize: 12),
+              ),
+            ),
+            child: TextFormField(
+              controller: tanggalController,
+              readOnly: true,
+              style: GoogleFonts.poppins(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
+              decoration: _inputDecoration("Pilih tanggal perjalanan"),
+              onTap: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: DateTime.now(),
+                  firstDate: DateTime.now(),
+                  lastDate: DateTime(2100),
+                  locale: const Locale('id'),
+                );
+                if (picked != null) _setTanggal(picked);
+              },
+              validator: (v) =>
+                  v == null || v.isEmpty ? "Pilih tanggal perjalanan" : null,
+            ),
           ),
         ],
       ),
+    );
+  }
+
+  // ================= WIDGET CARD INPUT =================
+  Widget _buildInputCard({
+    required IconData icon,
+    required String label,
+    required Widget child,
+    Widget? trailing,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Icon(icon, color: merahUtama),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+                child,
+              ],
+            ),
+          ),
+          if (trailing != null) ...[const SizedBox(width: 10), trailing],
+        ],
+      ),
+    );
+  }
+
+  // ================= INPUT DECORATION =================
+  InputDecoration _inputDecoration(String hint) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: GoogleFonts.poppins(fontSize: 14, color: Colors.grey.shade400),
+      border: InputBorder.none,
+      isDense: true,
+      contentPadding: const EdgeInsets.symmetric(vertical: 6),
     );
   }
 
@@ -499,11 +547,12 @@ class _HalamanUtamaUserState extends State<HalamanUtamaUser> {
         MaterialPageRoute(
           builder: (context) => HalamanJadwalUser(
             userId: idPenumpang!,
-            idRute: rute['id_rute'],
+            idRute: int.tryParse(rute['id_rute'].toString()) ?? 0,
             dari: dari!,
             ke: ke!,
             tanggal: tanggalController.text,
-            harga: rute['harga'],
+           harga: int.tryParse(rute['harga'].toString()) ?? 0,
+
           ),
         ),
       );

@@ -7,6 +7,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'halaman_utama_user.dart';
+import 'package:tiket/core/app_bar_costum.dart';
 
 class HalamanKonfirmasiPembayaran extends StatefulWidget {
   final String dari, ke, tanggal, jamKeberangkatan;
@@ -61,20 +62,27 @@ class _HalamanKonfirmasiPembayaranState
   }
 
   Future<void> _pickFile() async {
-    final result = await FilePicker.platform.pickFiles(withData: true);
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image, // FOTO SAJA
+      withData: true,
+    );
     if (result != null && result.files.isNotEmpty) {
-      setState(() {
-        pickedFile = result.files.first;
-      });
+      setState(() => pickedFile = result.files.first);
     }
   }
 
   Future<void> _uploadBukti() async {
     if (pickedFile == null) {
-      _showErrorDialog("Silakan pilih file terlebih dahulu!");
+      _showErrorDialog("Silakan pilih foto bukti pembayaran terlebih dahulu!");
       return;
     }
 
+    final allowed = ['jpg', 'jpeg', 'png'];
+    final ext = pickedFile!.extension?.toLowerCase();
+    if (!allowed.contains(ext)) {
+      _showErrorDialog("Hanya foto JPG atau PNG yang diperbolehkan.");
+      return;
+    }
     setState(() => _isUploading = true);
 
     try {
@@ -261,7 +269,7 @@ class _HalamanKonfirmasiPembayaranState
             ),
             const SizedBox(height: 6),
             Text(
-              "Batas waktu 15 menit berakhir.\nPemesanan dibatalkan.",
+              "Batas waktu pembayaran berakhir.\nPemesanan dibatalkan.",
               textAlign: TextAlign.center,
               style: GoogleFonts.poppins(color: Colors.grey[700]),
             ),
@@ -275,6 +283,7 @@ class _HalamanKonfirmasiPembayaranState
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF960000),
                 shape: RoundedRectangleBorder(
+                  
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
@@ -287,13 +296,6 @@ class _HalamanKonfirmasiPembayaranState
         ),
       ),
     );
-
-    Future.delayed(const Duration(seconds: 5), () {
-      if (mounted) {
-        Navigator.of(context).popUntil((route) => route.isFirst);
-        HalamanUtamaUser.globalKey.currentState?.setTabIndex(0);
-      }
-    });
   }
 
   @override
@@ -312,32 +314,7 @@ class _HalamanKonfirmasiPembayaranState
         return true;
       },
       child: Scaffold(
-        appBar: AppBar(
-          elevation: 3,
-          flexibleSpace: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFFA00000), Color(0xFF700000)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-          ),
-          title: Text(
-            "Konfirmasi Pembayaran",
-            style: GoogleFonts.poppins(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () async {
-              await _unlockKursi();
-              Navigator.of(context).pop();
-            },
-          ),
-        ),
+             appBar: const AppBarCustom(title: 'Pembayaran'),
         body: Padding(
           padding: const EdgeInsets.all(16),
           child: ListView(
@@ -350,28 +327,35 @@ class _HalamanKonfirmasiPembayaranState
               const SizedBox(height: 14),
               _buildUploadCard(waktuHabis),
               const SizedBox(height: 25),
-              Center(
+              SizedBox(
+                width: double.infinity,
                 child: ElevatedButton(
                   onPressed: (waktuHabis || pickedFile == null || _isUploading)
                       ? null
                       : _uploadBukti,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF960000),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 80,
-                      vertical: 14,
-                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   child: _isUploading
-                      ? const CircularProgressIndicator(color: Colors.white)
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
                       : const Text(
                           "Kirim Bukti Pembayaran",
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 16,
+                            fontSize: 15,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -403,7 +387,7 @@ class _HalamanKonfirmasiPembayaranState
         ),
         ...widget.detailPenumpang.map(
           (p) => Text(
-            "• Kursi ${p['kursi']}: ${p['nama']}",
+            "• Kursi ${p['id_kursi']}: ${p['nama']}",
             style: GoogleFonts.poppins(fontSize: 13),
           ),
         ),
@@ -440,7 +424,7 @@ class _HalamanKonfirmasiPembayaranState
       child: OutlinedButton.icon(
         onPressed: waktuHabis ? null : _pickFile,
         icon: const Icon(Icons.attach_file),
-        label: Text(pickedFile == null ? "Pilih File" : pickedFile!.name),
+        label: Text(pickedFile == null ? "Pilih Foto" : pickedFile!.name),
         style: OutlinedButton.styleFrom(
           foregroundColor: const Color(0xFF960000),
           side: const BorderSide(color: Color(0xFF960000)),
@@ -471,7 +455,7 @@ class _HalamanKonfirmasiPembayaranState
         Text(
           waktuHabis
               ? "❌ Waktu pembayaran habis"
-              : "⏰ Selesaikan sebelum: ${_formatDuration(_remainingSeconds)}",
+              : "Selesaikan sebelum: ${_formatDuration(_remainingSeconds)}",
           style: GoogleFonts.poppins(
             color: waktuHabis ? Colors.grey[700] : const Color(0xFF960000),
             fontWeight: FontWeight.w600,
