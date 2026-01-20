@@ -107,10 +107,17 @@ class _HalamanPetugasState extends State<HalamanPetugas> {
       setState(() {
         kursiTersedia = kursiData
             .where((k) => k['status'] == 'kosong')
-            .map<int>((k) => k['no_kursi'] as int)
+            .map<int>((k) => int.parse(k['no_kursi'].toString()))
             .toList();
-        noToIdKursi = {for (var k in kursiData) k['no_kursi']: k['id_kursi']};
-        selectedSeats = [];
+
+        noToIdKursi = {
+          for (var k in kursiData)
+            int.parse(k['no_kursi'].toString()): int.parse(
+              k['id_kursi'].toString(),
+            ),
+        };
+
+        selectedSeats.clear();
         penumpangPerKursi.clear();
       });
     }
@@ -393,29 +400,34 @@ class _HalamanPetugasState extends State<HalamanPetugas> {
                     ),
                     const SizedBox(height: 6),
                     DropdownButtonFormField<String>(
+                      isExpanded: true,
                       hint: const Text('Pilih Rute'),
                       value: selectedRute,
-                      items: ruteList
-                          .map(
-                            (r) => DropdownMenuItem<String>(
-                              value: r['id_rute'].toString(),
-                              child: Text('${r['asal']} - ${r['tujuan']}'),
-                              onTap: () {
-                                hargaRute = r['harga'] ?? 0;
-                              },
-                            ),
-                          )
-                          .toList(),
+                      items: ruteList.map((r) {
+                        return DropdownMenuItem<String>(
+                          value: r['id_rute'].toString(),
+                          child: Text('${r['asal']} - ${r['tujuan']}'),
+                        );
+                      }).toList(),
                       onChanged: (val) {
+                        final rute = ruteList.firstWhere(
+                          (r) => r['id_rute'].toString() == val,
+                        );
+
                         setState(() {
                           selectedRute = val;
+                          hargaRute =
+                              int.tryParse(rute['harga'].toString()) ?? 0;
                           selectedJamId = null;
-                          jadwalList = [];
+                          jadwalList.clear();
+                          showDenah = false;
                         });
-                        if (val != null) fetchJam(val);
+
+                        fetchJam(val!);
                       },
                       decoration: inputDecorationBase,
                     ),
+
                     const SizedBox(height: 12),
                     Row(
                       children: const [
@@ -452,7 +464,10 @@ class _HalamanPetugasState extends State<HalamanPetugas> {
                                 lastDate: DateTime(2030),
                               );
                               if (picked != null) {
-                                setState(() => selectedDate = picked);
+                                setState(() {
+                                  selectedDate = picked;
+                                  selectedJamId = null; // WAJIB
+                                });
                               }
                             },
                           ),
@@ -505,33 +520,46 @@ class _HalamanPetugasState extends State<HalamanPetugas> {
                       items: jadwalList.map((j) {
                         final jamText = j['jam_keberangkatan'] ?? '-';
                         DateTime? jamDateTime;
-                        try {
+
+                        if (selectedDate != null) {
                           final parts = jamText.split(':');
                           if (parts.length >= 2) {
                             jamDateTime = DateTime(
-                              selectedDate?.year ?? DateTime.now().year,
-                              selectedDate?.month ?? DateTime.now().month,
-                              selectedDate?.day ?? DateTime.now().day,
+                              selectedDate!.year,
+                              selectedDate!.month,
+                              selectedDate!.day,
                               int.parse(parts[0]),
                               int.parse(parts[1]),
                             );
                           }
-                        } catch (_) {}
+                        }
+
                         final now = DateTime.now();
-                        final isDisabled =
-                            jamDateTime != null && jamDateTime.isBefore(now);
+                        bool isDisabled = false;
+
+                        if (selectedDate != null && jamDateTime != null) {
+                          final today = DateTime(now.year, now.month, now.day);
+                          final selectedDay = DateTime(
+                            selectedDate!.year,
+                            selectedDate!.month,
+                            selectedDate!.day,
+                          );
+
+                          // ❌ disable HANYA kalau hari ini & jam sudah lewat
+                          if (selectedDay.isAtSameMomentAs(today)) {
+                            isDisabled = jamDateTime.isBefore(now);
+                          }
+                        }
 
                         return DropdownMenuItem<String>(
                           value: j['id_jadwal'].toString(),
+                          enabled: !isDisabled,
                           child: Text(
-                            jamDateTime != null
-                                ? "${jamDateTime.hour.toString().padLeft(2, '0')}:${jamDateTime.minute.toString().padLeft(2, '0')}"
-                                : jamText,
+                            jamText,
                             style: TextStyle(
                               color: isDisabled ? Colors.grey : Colors.black,
                             ),
                           ),
-                          enabled: !isDisabled,
                         );
                       }).toList(),
                       onChanged: (val) {
@@ -541,6 +569,7 @@ class _HalamanPetugasState extends State<HalamanPetugas> {
                       },
                       decoration: inputDecorationBase,
                     ),
+
                     const SizedBox(height: 14),
                     Center(
                       child: ElevatedButton(

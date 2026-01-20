@@ -126,6 +126,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
+
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.all(20),

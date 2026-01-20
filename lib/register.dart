@@ -14,14 +14,12 @@ class RegisterPage extends StatefulWidget {
 class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController namaController = TextEditingController();
   final TextEditingController teleponController = TextEditingController();
-  final TextEditingController emailController =
-      TextEditingController(); // ✅ emailController ditambahkan
+  final TextEditingController emailController = TextEditingController();
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController konfirmasiPasswordController =
       TextEditingController();
 
-  bool agree = false;
   bool showPassword = false;
   bool loading = false;
 
@@ -32,16 +30,14 @@ class _RegisterPageState extends State<RegisterPage> {
         usernameController.text.isNotEmpty &&
         passwordController.text.isNotEmpty &&
         konfirmasiPasswordController.text.isNotEmpty &&
-        passwordController.text == konfirmasiPasswordController.text &&
-        agree;
+        passwordController.text == konfirmasiPasswordController.text;
   }
 
   Future<void> registerUser() async {
-    setState(() {
-      loading = true;
-    });
+    setState(() => loading = true);
 
     final url = Uri.parse('https://fifafel.my.id/api/penumpang/register');
+
     try {
       final response = await http.post(
         url,
@@ -52,7 +48,7 @@ class _RegisterPageState extends State<RegisterPage> {
         body: jsonEncode({
           'nama_penumpang': namaController.text,
           'no_telepon': teleponController.text,
-          'email': emailController.text, // ✅ email dikirim
+          'email': emailController.text,
           'username': usernameController.text,
           'password': passwordController.text,
         }),
@@ -72,7 +68,6 @@ class _RegisterPageState extends State<RegisterPage> {
         });
       } else {
         String pesan = 'Gagal daftar.';
-
         if (data is Map && data.containsKey('errors')) {
           pesan = data['errors'].values.first[0];
         } else if (data is Map && data.containsKey('message')) {
@@ -88,27 +83,38 @@ class _RegisterPageState extends State<RegisterPage> {
         context,
       ).showSnackBar(SnackBar(content: Text('Terjadi kesalahan: $e')));
     } finally {
-      setState(() {
-        loading = false;
-      });
+      setState(() => loading = false);
     }
   }
 
-  InputDecoration buildInputDecoration(String label, {Widget? suffixIcon}) {
+  // INPUT STYLE BARU — placeholder di dalam, label di luar
+  InputDecoration buildInputDecoration(String hint, {Widget? suffixIcon}) {
     return InputDecoration(
-      labelText: label,
-      labelStyle: GoogleFonts.poppins(color: Colors.grey[700]),
-      hintStyle: GoogleFonts.poppins(color: Colors.grey[500]),
+      hintText: hint,
+      hintStyle: GoogleFonts.poppins(color: Colors.grey[600], fontSize: 14),
       filled: true,
       fillColor: Colors.grey[100],
       suffixIcon: suffixIcon,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide.none,
+      ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(
-          color: Color.fromARGB(255, 9, 9, 9),
-          width: 2,
-        ),
+        borderSide: const BorderSide(color: Color(0xFFB71C1C), width: 2),
+      ),
+    );
+  }
+
+  // Widget helper untuk label di atas input
+  Widget buildLabel(String text) {
+    return Text(
+      text,
+      style: GoogleFonts.poppins(
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        color: Colors.black87,
       ),
     );
   }
@@ -126,7 +132,6 @@ class _RegisterPageState extends State<RegisterPage> {
           ),
         ),
         backgroundColor: const Color(0xFFB71C1C),
-        elevation: 0,
         centerTitle: true,
       ),
       body: SingleChildScrollView(
@@ -142,165 +147,169 @@ class _RegisterPageState extends State<RegisterPage> {
                 color: Colors.black87,
               ),
             ),
+
             const SizedBox(height: 24),
 
-            // Nama Lengkap
+            // NAMA
+            buildLabel("Nama Lengkap"),
+            const SizedBox(height: 6),
             TextField(
               controller: namaController,
-              style: const TextStyle(color: Colors.black),
-              decoration: buildInputDecoration('Nama Lengkap'),
-              textInputAction: TextInputAction.next,
+              decoration: buildInputDecoration('Masukkan nama lengkap'),
               onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 16),
 
-            // No Telepon
+            // TELEPON
+            buildLabel("No Telepon"),
+            const SizedBox(height: 6),
             TextField(
               controller: teleponController,
-              style: const TextStyle(color: Colors.black),
               keyboardType: TextInputType.phone,
-              decoration: buildInputDecoration('No Telepon'),
-              textInputAction: TextInputAction.next,
+              decoration: buildInputDecoration('Masukkan nomor telepon'),
               onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 16),
 
-            // Email
+            // EMAIL
+            buildLabel("Email"),
+            const SizedBox(height: 6),
             TextField(
-              controller: emailController, // ✅ input email
-              style: const TextStyle(color: Colors.black),
+              controller: emailController,
               keyboardType: TextInputType.emailAddress,
-              decoration: buildInputDecoration('Email'),
-              textInputAction: TextInputAction.next,
+              decoration: buildInputDecoration('Masukkan email'),
               onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 16),
 
-            // Username
+            // USERNAME
+            buildLabel("Username"),
+            const SizedBox(height: 6),
             TextField(
               controller: usernameController,
-              style: const TextStyle(color: Colors.black),
-              decoration: buildInputDecoration('Username'),
-              textInputAction: TextInputAction.next,
+              decoration: buildInputDecoration('Masukkan username'),
               onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 16),
 
-            // Password
+            // PASSWORD
+            buildLabel("Password"),
+            const SizedBox(height: 6),
             TextField(
               controller: passwordController,
-              style: const TextStyle(color: Colors.black),
               obscureText: !showPassword,
               decoration: buildInputDecoration(
-                'Password',
+                'Masukkan password',
                 suffixIcon: IconButton(
                   icon: Icon(
                     showPassword ? Icons.visibility : Icons.visibility_off,
                     color: Colors.grey[700],
                   ),
-                  onPressed: () {
-                    setState(() {
-                      showPassword = !showPassword;
-                    });
-                  },
+                  onPressed: () => setState(() => showPassword = !showPassword),
                 ),
               ),
-              textInputAction: TextInputAction.next,
               onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 16),
 
-            // Konfirmasi Password
+            // KONFIRMASI PASSWORD
+            buildLabel("Konfirmasi Password"),
+            const SizedBox(height: 6),
             TextField(
               controller: konfirmasiPasswordController,
-              style: const TextStyle(color: Colors.black),
               obscureText: true,
-              decoration: buildInputDecoration('Konfirmasi Password'),
-              textInputAction: TextInputAction.done,
+              decoration: buildInputDecoration('Ulangi password'),
               onChanged: (_) => setState(() {}),
             ),
+
             if (passwordController.text.isNotEmpty &&
                 konfirmasiPasswordController.text.isNotEmpty &&
                 passwordController.text != konfirmasiPasswordController.text)
               Padding(
-                padding: const EdgeInsets.only(top: 4, left: 4),
+                padding: const EdgeInsets.only(top: 6),
                 child: Text(
                   'Password dan konfirmasi password tidak sama',
                   style: GoogleFonts.poppins(color: Colors.red, fontSize: 12),
                 ),
               ),
-            const SizedBox(height: 16),
 
-            // Checkbox
-            Row(
-              children: [
-                Checkbox(
-                  value: agree,
-                  onChanged: (bool? value) {
-                    setState(() {
-                      agree = value ?? false;
-                    });
-                  },
-                  activeColor: const Color(0xFF2196F3),
-                ),
-                Expanded(
-                  child: Text(
-                    'Saya setuju dengan syarat dan ketentuan',
-                    style: GoogleFonts.poppins(
-                      fontSize: 14,
-                      color: Colors.grey[800],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 30),
 
-            // Tombol Daftar
+            // BUTTON DAFTAR
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton(
-                onPressed: isFormValid && !loading ? registerUser : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFB71C1C),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: loading
-                    ? const CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
-                      )
-                    : Text(
-                        'Daftar',
-                        style: GoogleFonts.poppins(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
+              child: GestureDetector(
+                onTap: (!loading && isFormValid) ? registerUser : null,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  decoration: BoxDecoration(
+                    gradient: (!loading && isFormValid)
+                        ? const LinearGradient(
+                            colors: [Color(0xFFFF6A00), Color(0xFFEE0979)],
+                          )
+                        : LinearGradient(colors: [Colors.grey, Colors.grey]),
+                    borderRadius: BorderRadius.circular(50),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 12,
+                        offset: const Offset(0, 5),
                       ),
+                    ],
+                  ),
+                  alignment: Alignment.center,
+                  child: loading
+                      ? const CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        )
+                      : Text(
+                          "DAFTAR",
+                          style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                ),
               ),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
 
-            // 🔹 Teks "Sudah punya akun?"
-            Center(
-              child: TextButton(
-                onPressed: () {
+            // BUTTON LOGIN
+            SizedBox(
+              width: double.infinity,
+              child: GestureDetector(
+                onTap: () {
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(builder: (context) => const Login()),
                   );
                 },
-                child: Text(
-                  'Login',
-                  style: GoogleFonts.poppins(
-                    fontSize: 15,
-                    color: const Color(0xFFB71C1C),
-                    fontWeight: FontWeight.w600,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFFF6A00), Color(0xFFEE0979)],
+                    ),
+                    borderRadius: BorderRadius.circular(50),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 12,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    "SUDAH PUNYA AKUN",
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ),

@@ -4,6 +4,9 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'halaman_konfirmasi_pembayaran.dart';
+import 'package:tiket/core/app_bar_costum.dart';
+
+
 
 class HalamanPembayaranUser extends StatefulWidget {
   final String dari;
@@ -42,16 +45,14 @@ class _HalamanPembayaranUserState extends State<HalamanPembayaranUser> {
   @override
   void initState() {
     super.initState();
-    initializeDateFormatting('id', null);
+    initializeDateFormatting('id');
 
     for (int i = 0; i < widget.kursi.length; i++) {
-      final controller = TextEditingController();
-
+      final c = TextEditingController();
       if (i == 0 && widget.namaPenumpang != null) {
-        controller.text = widget.namaPenumpang!;
+        c.text = widget.namaPenumpang!;
       }
-
-      namaControllers.add(controller);
+      namaControllers.add(c);
     }
   }
 
@@ -68,21 +69,20 @@ class _HalamanPembayaranUserState extends State<HalamanPembayaranUser> {
     final totalBayar = widget.kursi.length * widget.harga;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Detail Penumpang"),
-        backgroundColor: const Color.fromARGB(255, 150, 0, 0),
-        foregroundColor: Colors.white,
-      ),
+      resizeToAvoidBottomInset: true, // ✅ PENTING
+       appBar: const AppBarCustom(title: 'Pembayaran'),
+
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            /// INFORMASI PEMESANAN
             Card(
+              elevation: 3,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
-              elevation: 3,
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -115,6 +115,7 @@ class _HalamanPembayaranUserState extends State<HalamanPembayaranUser> {
 
             const SizedBox(height: 24),
 
+            /// DETAIL PENUMPANG
             const Text(
               "Detail Penumpang",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -128,10 +129,10 @@ class _HalamanPembayaranUserState extends State<HalamanPembayaranUser> {
               itemBuilder: (context, index) {
                 return Card(
                   margin: const EdgeInsets.only(bottom: 16),
+                  elevation: 2,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  elevation: 2,
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
@@ -139,14 +140,13 @@ class _HalamanPembayaranUserState extends State<HalamanPembayaranUser> {
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.person, size: 22),
+                            const Icon(Icons.person),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 "Penumpang ${index + 1}",
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 15,
                                 ),
                               ),
                             ),
@@ -162,28 +162,19 @@ class _HalamanPembayaranUserState extends State<HalamanPembayaranUser> {
                               child: Text(
                                 "Kursi ${widget.kursi[index]}",
                                 style: const TextStyle(
-                                  fontSize: 13,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 12),
                         TextField(
                           controller: namaControllers[index],
                           decoration: InputDecoration(
                             hintText: "Nama Penumpang",
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 12,
-                            ),
-                            enabledBorder: OutlineInputBorder(
+                            border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(
-                                color: Colors.black54,
-                                width: 1.2,
-                              ),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
@@ -200,119 +191,103 @@ class _HalamanPembayaranUserState extends State<HalamanPembayaranUser> {
                 );
               },
             ),
-
-            const SizedBox(height: 88),
           ],
         ),
       ),
 
+      /// TOMBOL BAWAH
       bottomNavigationBar: SafeArea(
-        minimum: const EdgeInsets.all(16),
-        child: SizedBox(
-          height: 52,
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color.fromARGB(255, 150, 0, 0),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: SizedBox(
+            height: 52,
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color.fromARGB(255, 150, 0, 0),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
-            ),
-            onPressed: () async {
-              List<String> namaPenumpangList = namaControllers
-                  .map((c) => c.text.trim())
-                  .toList();
+              onPressed: () async {
+                // ✅ KUNCI UTAMA
+                FocusScope.of(context).unfocus();
 
-              if (namaPenumpangList.any((nama) => nama.isEmpty)) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text("Harap isi semua nama penumpang"),
-                  ),
-                );
-                return;
-              }
+                final namaPenumpangList = namaControllers
+                    .map((c) => c.text.trim())
+                    .toList();
 
-              try {
-                final unlockUri = Uri.parse(
-                  'https://fifafel.my.id/api/unlock-kursi',
-                );
-                await http.post(
-                  unlockUri,
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                  },
-                  body: jsonEncode({'id_jadwal': widget.idJadwal}),
-                );
-
-                final lockUri = Uri.parse(
-                  'https://fifafel.my.id/api/lock-kursi',
-                );
-                final response = await http.post(
-                  lockUri,
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                  },
-                  body: jsonEncode({
-                    'id_jadwal': widget.idJadwal,
-                    'kursi': widget.kursi,
-                  }),
-                );
-
-                if (response.statusCode == 200) {
-                  final data = jsonDecode(response.body);
-                  print("✅ Kursi dikunci hingga: ${data['locked_until']}");
-                } else {
-                  print("⚠️ Gagal lock kursi: ${response.body}");
+                if (namaPenumpangList.any((e) => e.isEmpty)) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Gagal mengunci kursi")),
+                    const SnackBar(
+                      content: Text("Harap isi semua nama penumpang"),
+                    ),
                   );
                   return;
                 }
-              } catch (e) {
-                print("❌ Error: $e");
-                ScaffoldMessenger.of(
+
+                try {
+                  await http.post(
+                    Uri.parse('https://fifafel.my.id/api/unlock-kursi'),
+                    headers: {'Content-Type': 'application/json'},
+                    body: jsonEncode({'id_jadwal': widget.idJadwal}),
+                  );
+
+                  final res = await http.post(
+                    Uri.parse('https://fifafel.my.id/api/lock-kursi'),
+                    headers: {'Content-Type': 'application/json'},
+                    body: jsonEncode({
+                      'id_jadwal': widget.idJadwal,
+                      'kursi': widget.kursi,
+                    }),
+                  );
+
+                  if (res.statusCode != 200) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Gagal mengunci kursi")),
+                    );
+                    return;
+                  }
+                } catch (_) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Koneksi gagal")),
+                  );
+                  return;
+                }
+
+                final detailPenumpang = List.generate(
+                  widget.kursi.length,
+                  (i) => {
+                    "id_jadwal": widget.idJadwal,
+                    "id_kursi": widget.kursi[i],
+                    "nama": namaPenumpangList[i],
+                  },
+                );
+
+                final parsedTanggal = DateFormat(
+                  'dd MMMM yyyy',
+                  'id',
+                ).parse(widget.tanggal);
+
+                Navigator.push(
                   context,
-                ).showSnackBar(const SnackBar(content: Text("Koneksi gagal")));
-                return;
-              }
-
-              // Buat data untuk konfirmasi pembayaran
-              final List<Map<String, dynamic>> detailPenumpang = List.generate(
-                widget.kursi.length,
-                (i) => {
-                  "id_jadwal": widget.idJadwal,
-                  "id_kursi": widget.kursi[i],
-                  "nama": namaPenumpangList[i],
-                },
-              );
-
-              final parsedTanggal = DateFormat(
-                'dd MMMM yyyy',
-                'id',
-              ).parse(widget.tanggal);
-              final formattedTanggal = DateFormat(
-                'yyyy-MM-dd',
-              ).format(parsedTanggal);
-
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => HalamanKonfirmasiPembayaran(
-                    dari: widget.dari,
-                    ke: widget.ke,
-                    tanggal: formattedTanggal,
-                    jamKeberangkatan: widget.jamKeberangkatan,
-                    totalBayar: totalBayar,
-                    detailPenumpang: detailPenumpang,
-                    idPemesanan: widget.idPemesanan,
+                  MaterialPageRoute(
+                    builder: (_) => HalamanKonfirmasiPembayaran(
+                      dari: widget.dari,
+                      ke: widget.ke,
+                      tanggal: DateFormat('yyyy-MM-dd').format(parsedTanggal),
+                      jamKeberangkatan: widget.jamKeberangkatan,
+                      totalBayar: totalBayar,
+                      detailPenumpang: detailPenumpang,
+                      idPemesanan: widget.idPemesanan,
+                    ),
                   ),
-                ),
-              );
-            },
-            child: const Text(
-              "Lanjut ke Pembayaran",
-              style: TextStyle(fontSize: 16, color: Colors.white),
+                );
+              },
+              child: const Text(
+                "Lanjut ke Pembayaran",
+                style: TextStyle(fontSize: 16, color: Colors.white),
+              ),
             ),
           ),
         ),

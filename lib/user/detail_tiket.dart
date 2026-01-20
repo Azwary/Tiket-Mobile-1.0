@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:tiket/core/app_bar_costum.dart';
 
 class DetailTikePage extends StatelessWidget {
   final Map<String, dynamic> data;
@@ -22,27 +23,8 @@ class DetailTikePage extends StatelessWidget {
     final nomorTiket = data['nomor_tiket'] ?? '-';
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FA),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF960000),
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios_new_rounded,
-            color: Colors.white,
-            size: 20,
-          ),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          'Detail Tiket',
-          style: GoogleFonts.poppins(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        centerTitle: true,
-        elevation: 0,
-      ),
+      appBar: const AppBarCustom(title: 'ETIKET'),
+
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(18),
         child: Column(

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'detail_tiket.dart';
+import 'halaman_utama_user.dart';
 
 class TiketSayaPage extends StatefulWidget {
   final Map<String, dynamic>? tiketBaru;
@@ -41,14 +42,12 @@ class _TiketSayaPageState extends State<TiketSayaPage> {
           List<Map<String, dynamic>> tiketDariApi =
               List<Map<String, dynamic>>.from(data['data']);
 
-          // Tambahkan tiket baru (kalau ada)
           if (widget.tiketBaru != null) {
             tiketDariApi.insert(0, widget.tiketBaru!);
           }
 
           final now = DateTime.now();
 
-          // ✅ Filter tiket yang masih valid (belum lewat waktu keberangkatan)
           tiketDariApi = tiketDariApi.where((t) {
             String status = t['status'].toString().toLowerCase();
 
@@ -120,6 +119,7 @@ class _TiketSayaPageState extends State<TiketSayaPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: Text(
           'Tiket Saya',
           style: GoogleFonts.poppins(
@@ -136,12 +136,85 @@ class _TiketSayaPageState extends State<TiketSayaPage> {
             ? const Center(child: CircularProgressIndicator())
             : daftarTiket.isEmpty
             ? Center(
-                child: Text(
-                  'Tidak ada tiket tersedia',
-                  style: GoogleFonts.poppins(
-                    fontSize: 16,
-                    color: Colors.grey[600],
-                  ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // ICON
+                    Container(
+                      padding: const EdgeInsets.all(26),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF960000).withOpacity(0.08),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.confirmation_number_outlined,
+                        size: 60,
+                        color: Colors.grey,
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // TITLE
+                    Text(
+                      'Belum Ada Tiket',
+                      style: GoogleFonts.poppins(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF333333),
+                      ),
+                    ),
+
+                    const SizedBox(height: 6),
+
+                    // SUBTITLE
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 42),
+                      child: Text(
+                        'Tiket yang sudah dipesan akan muncul di halaman ini',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 26),
+
+                    // BUTTON PESAN TIKET
+                    SizedBox(
+                      width: 180,
+                      height: 44,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const HalamanUtamaUser (),
+                            ),
+                            (route) => false,
+                          );
+                        },
+
+                        icon: const Icon(Icons.search, size: 18),
+                        label: Text(
+                          'Pesan Tiket',
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF960000),
+                          foregroundColor: Colors.white,
+                          elevation: 2,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(22),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               )
             : ListView.builder(
@@ -182,7 +255,7 @@ class _TiketSayaPageState extends State<TiketSayaPage> {
                               vertical: 10,
                             ),
                             decoration: const BoxDecoration(
-                              color: Color(0xFFF8F8F8),
+                              color: Color(0xFFE7F8EF),
                               borderRadius: BorderRadius.vertical(
                                 top: Radius.circular(18),
                               ),
