@@ -5,11 +5,7 @@ class AppBarCustom extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final bool showBack;
 
-  const AppBarCustom({
-    super.key,
-    required this.title,
-    this.showBack = true,
-  });
+  const AppBarCustom({super.key, required this.title, this.showBack = true});
 
   @override
   Widget build(BuildContext context) {
@@ -25,10 +21,7 @@ class AppBarCustom extends StatelessWidget implements PreferredSizeWidget {
 
       leading: showBack
           ? IconButton(
-              icon: const Icon(
-                Icons.arrow_back_ios_new,
-                size: 20,
-              ),
+              icon: const Icon(Icons.arrow_back, size: 20),
               onPressed: () => Navigator.pop(context),
             )
           : null,
@@ -37,10 +30,7 @@ class AppBarCustom extends StatelessWidget implements PreferredSizeWidget {
         title,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: GoogleFonts.poppins(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-        ),
+        style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600),
       ),
     );
   }

@@ -6,6 +6,7 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:tiket/login.dart';
 import 'dart:convert';
 import 'jadwal_user.dart';
 import 'profile.dart';
@@ -57,6 +58,8 @@ class HalamanUtamaUser extends StatefulWidget {
 class _HalamanUtamaUserState extends State<HalamanUtamaUser> {
   int currentIndex = 0;
   int? idPenumpang;
+  int jumlahPenumpang = 1;
+  String? namaUser;
 
   void setTabIndex(int index) {
     setState(() => currentIndex = index);
@@ -91,11 +94,81 @@ class _HalamanUtamaUserState extends State<HalamanUtamaUser> {
     super.dispose();
   }
 
+  PreferredSizeWidget _buildAppBarUser() {
+    return AppBar(
+      backgroundColor: Colors.white,
+      elevation: 2,
+      automaticallyImplyLeading: false,
+      title: const SizedBox(), // kiri kosong
+      actions: [
+        // 🔔 NOTIFIKASI
+        IconButton(
+          icon: const Icon(Icons.notifications_none_rounded),
+          color: Colors.black87,
+          onPressed: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Belum ada notifikasi")),
+            );
+          },
+        ),
+
+        // │ PEMBATAS VERTIKAL
+        Container(
+          height: 24,
+          width: 1,
+          color: Colors.grey.shade300,
+          margin: const EdgeInsets.symmetric(horizontal: 8),
+        ),
+
+        // 👤 NAMA USER (KLIK → LOGOUT)
+        PopupMenuButton<String>(
+          onSelected: (value) async {
+            if (value == 'logout') {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.clear();
+
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const Login()),
+                (route) => false,
+              );
+            }
+          },
+          itemBuilder: (context) => const [
+            PopupMenuItem(value: 'logout', child: Text('Logout')),
+          ],
+          child: Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: Row(
+              children: [
+                Text(
+                  namaUser ?? "User",
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                const Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  size: 18,
+                  color: Colors.grey,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Future<void> getIdPenumpang() async {
     final prefs = await SharedPreferences.getInstance();
     if (!mounted) return;
     setState(() {
       idPenumpang = prefs.getInt('id_penumpang');
+      namaUser = prefs.getString('nama_penumpang');
     });
   }
 
@@ -169,8 +242,8 @@ class _HalamanUtamaUserState extends State<HalamanUtamaUser> {
     }
 
     return Scaffold(
+      appBar: currentIndex == 0 ? _buildAppBarUser() : null,
       body: currentBody,
-
       bottomNavigationBar: Footer(
         currentIndex: currentIndex,
         onTap: (i) => setState(() => currentIndex = i),
@@ -194,41 +267,30 @@ class _HalamanUtamaUserState extends State<HalamanUtamaUser> {
             }).toList(),
           ),
           Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Card(
-              elevation: 6,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: _buildFormRute(context),
-              ),
-            ),
-          ),
-          SizedBox(
-            width: MediaQuery.of(context).size.width * 0.9,
-            child: ElevatedButton.icon(
-              onPressed: _onPesanPressed,
-              icon: const Icon(Icons.search, color: Colors.white),
-              label: Text(
-                "Cari Jadwal Bus",
-                style: GoogleFonts.poppins(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Transform.translate(
+              offset: const Offset(0, -24), // ⬅️ NAIK KE ATAS
+              child: Container(
+                decoration: BoxDecoration(
                   color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.grey.shade400),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 12,
+                      offset: Offset(0, 6),
+                    ),
+                  ],
                 ),
-              ),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                backgroundColor: merahUtama,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: _buildFormRute(context),
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 30),
+
           _buildSectionCard("Fasilitas Bus", [
             _buildFasilitasCard(Icons.gavel, "Palu Darurat", Colors.red),
             _buildFasilitasCard(
@@ -268,93 +330,172 @@ class _HalamanUtamaUserState extends State<HalamanUtamaUser> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            "Cari Rute Perjalanan",
-            style: GoogleFonts.poppins(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: merahUtama,
+          Center(
+            child: Text(
+              "Cari Rute Perjalanan",
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
             ),
           ),
           const SizedBox(height: 18),
 
-          // ===== DARI =====
-          _buildInputCard(
-            icon: Icons.my_location,
-            label: "Keberangkatan",
-            child: Autocomplete<String>(
-              optionsBuilder: (TextEditingValue textEditingValue) {
-                if (textEditingValue.text.isEmpty) return daftarKotaAsal;
-                return daftarKotaAsal.where(
-                  (kota) => kota.toLowerCase().contains(
-                    textEditingValue.text.toLowerCase(),
-                  ),
-                );
-              },
-              fieldViewBuilder:
-                  (context, controller, focusNode, onFieldSubmitted) {
-                    dariController.text = controller.text;
-                    return TextFormField(
-                      controller: controller,
-                      focusNode: focusNode,
-                      style: GoogleFonts.poppins(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      decoration: _inputDecoration(
-                        "Pilih Terlminal Keberangkatan",
-                      ),
-                      validator: (v) => v == null || v.isEmpty
-                          ? "Masukkan Terminal Keberangkatan"
-                          : null,
-                      onChanged: (v) {
-                        dari = v;
-                        updateKotaTujuan(v);
-                      },
-                    );
-                  },
-              onSelected: (String selection) {
-                dari = selection;
-                updateKotaTujuan(selection);
-              },
+          // ===== DARI & KE (GABUNG) =====
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.grey.shade400),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 8,
+                  offset: Offset(0, 3),
+                ),
+              ],
             ),
-          ),
-
-          const SizedBox(height: 14),
-
-          // ===== KE =====
-          _buildInputCard(
-            icon: Icons.flag,
-            label: "Tujuan",
-            child: Autocomplete<String>(
-              optionsBuilder: (TextEditingValue textEditingValue) {
-                if (textEditingValue.text.isEmpty) return daftarKotaTujuan;
-                return daftarKotaTujuan.where(
-                  (kota) => kota.toLowerCase().contains(
-                    textEditingValue.text.toLowerCase(),
-                  ),
-                );
-              },
-              fieldViewBuilder:
-                  (context, controller, focusNode, onFieldSubmitted) {
-                    keController.text = controller.text;
-                    return TextFormField(
-                      controller: controller,
-                      focusNode: focusNode,
-                      style: GoogleFonts.poppins(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
+            child: Column(
+              children: [
+                // ===== DARI =====
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 22),
+                      child: Icon(
+                        Icons.directions_bus_rounded,
+                        color: merahUtama,
                       ),
-                      decoration: _inputDecoration("Pilih Terminal Tujuan"),
-                      validator: (v) => v == null || v.isEmpty
-                          ? "Masukkan Terminal tujuan"
-                          : null,
-                      onChanged: (v) => ke = v,
-                    );
-                  },
-              onSelected: (String selection) {
-                ke = selection;
-              },
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Keberangkatan",
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          Autocomplete<String>(
+                            optionsBuilder:
+                                (TextEditingValue textEditingValue) {
+                                  if (textEditingValue.text.isEmpty) {
+                                    return daftarKotaAsal;
+                                  }
+                                  return daftarKotaAsal.where(
+                                    (kota) => kota.toLowerCase().contains(
+                                      textEditingValue.text.toLowerCase(),
+                                    ),
+                                  );
+                                },
+                            fieldViewBuilder:
+                                (
+                                  context,
+                                  controller,
+                                  focusNode,
+                                  onFieldSubmitted,
+                                ) {
+                                  dariController.text = controller.text;
+                                  return TextFormField(
+                                    controller: controller,
+                                    focusNode: focusNode,
+                                    decoration: _inputDecoration(
+                                      "Pilih Terminal Keberangkatan",
+                                    ),
+                                    validator: (v) => v == null || v.isEmpty
+                                        ? "Masukkan Terminal Keberangkatan"
+                                        : null,
+                                    onChanged: (v) {
+                                      dari = v;
+                                      updateKotaTujuan(v);
+                                    },
+                                  );
+                                },
+                            onSelected: (selection) {
+                              dari = selection;
+                              updateKotaTujuan(selection);
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Divider(thickness: 1.5, color: Colors.grey.shade400),
+                ),
+
+                // ===== KE =====
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 22), // ⬅️ sama persis
+                      child: Icon(Icons.flag, color: merahUtama),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Tujuan",
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          Autocomplete<String>(
+                            optionsBuilder:
+                                (TextEditingValue textEditingValue) {
+                                  if (textEditingValue.text.isEmpty) {
+                                    return daftarKotaTujuan;
+                                  }
+                                  return daftarKotaTujuan.where(
+                                    (kota) => kota.toLowerCase().contains(
+                                      textEditingValue.text.toLowerCase(),
+                                    ),
+                                  );
+                                },
+                            fieldViewBuilder:
+                                (
+                                  context,
+                                  controller,
+                                  focusNode,
+                                  onFieldSubmitted,
+                                ) {
+                                  keController.text = controller.text;
+                                  return TextFormField(
+                                    controller: controller,
+                                    focusNode: focusNode,
+                                    decoration: _inputDecoration(
+                                      "Pilih Terminal Tujuan",
+                                    ),
+                                    validator: (v) => v == null || v.isEmpty
+                                        ? "Masukkan Terminal Tujuan"
+                                        : null,
+                                    onChanged: (v) => ke = v,
+                                  );
+                                },
+                            onSelected: (selection) {
+                              ke = selection;
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
 
@@ -404,6 +545,57 @@ class _HalamanUtamaUserState extends State<HalamanUtamaUser> {
                   v == null || v.isEmpty ? "Pilih tanggal perjalanan" : null,
             ),
           ),
+
+          const SizedBox(height: 14),
+          // ===== JUMLAH PENUMPANG =====
+          _buildInputCard(
+            icon: Icons.people,
+            label: "Jumlah Penumpang",
+            child: DropdownButtonFormField<int>(
+              value: jumlahPenumpang,
+              items: const [
+                DropdownMenuItem(value: 1, child: Text("1 Penumpang")),
+                DropdownMenuItem(value: 2, child: Text("2 Penumpang")),
+                DropdownMenuItem(value: 3, child: Text("3 Penumpang")),
+                DropdownMenuItem(value: 4, child: Text("4 Penumpang")),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  jumlahPenumpang = value!;
+                });
+              },
+              decoration: const InputDecoration(
+                border: InputBorder.none,
+                isDense: true,
+              ),
+              validator: (value) =>
+                  value == null ? "Pilih jumlah penumpang" : null,
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: MediaQuery.of(context).size.width * 0.9,
+            height: 48, // 🔼 tambah tinggi
+            child: ElevatedButton(
+              onPressed: _onPesanPressed,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: merahUtama,
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12), // 🔼 lebih seimbang
+                ),
+              ),
+              child: Text(
+                "Cari Jadwal Bus",
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15, // 🔼 sedikit lebih besar
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -421,7 +613,14 @@ class _HalamanUtamaUserState extends State<HalamanUtamaUser> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: Colors.grey.shade400),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 6,
+            offset: Offset(0, 3),
+          ),
+        ],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -470,13 +669,16 @@ class _HalamanUtamaUserState extends State<HalamanUtamaUser> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              title,
-              style: GoogleFonts.poppins(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
+            Center(
+              child: Text(
+                title,
+                style: GoogleFonts.poppins(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
+
             const SizedBox(height: 12),
             SizedBox(
               height: 150,
@@ -502,13 +704,17 @@ class _HalamanUtamaUserState extends State<HalamanUtamaUser> {
           padding: const EdgeInsets.all(12),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center, // ⬅️ penting
             children: [
               Icon(icon, size: 40, color: color),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               Text(
                 text,
                 textAlign: TextAlign.center,
-                style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
               ),
             ],
           ),
@@ -550,9 +756,9 @@ class _HalamanUtamaUserState extends State<HalamanUtamaUser> {
             idRute: int.tryParse(rute['id_rute'].toString()) ?? 0,
             dari: dari!,
             ke: ke!,
-            tanggal: tanggalController.text,
-           harga: int.tryParse(rute['harga'].toString()) ?? 0,
-
+            tanggal: DateFormat('yyyy-MM-dd').format(tanggal!), 
+            harga: int.tryParse(rute['harga'].toString()) ?? 0,
+            jumlahPenumpang: jumlahPenumpang,
           ),
         ),
       );

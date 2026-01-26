@@ -29,7 +29,6 @@ class DetailTikePage extends StatelessWidget {
         padding: const EdgeInsets.all(18),
         child: Column(
           children: [
-            // ==== Kartu Tiket Utama (lebih panjang sampai bawah) ====
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 30),

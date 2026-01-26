@@ -5,8 +5,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'halaman_konfirmasi_pembayaran.dart';
 import 'package:tiket/core/app_bar_costum.dart';
-
-
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HalamanPembayaranUser extends StatefulWidget {
   final String dari;
@@ -41,11 +40,14 @@ class HalamanPembayaranUser extends StatefulWidget {
 class _HalamanPembayaranUserState extends State<HalamanPembayaranUser> {
   final formatter = NumberFormat.decimalPattern();
   final List<TextEditingController> namaControllers = [];
+  String? emailPemesan;
+  String? noHpPemesan;
 
   @override
   void initState() {
     super.initState();
     initializeDateFormatting('id');
+    _ambilDataUser();
 
     for (int i = 0; i < widget.kursi.length; i++) {
       final c = TextEditingController();
@@ -64,20 +66,28 @@ class _HalamanPembayaranUserState extends State<HalamanPembayaranUser> {
     super.dispose();
   }
 
+  Future<void> _ambilDataUser() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    setState(() {
+      emailPemesan = prefs.getString('email');
+      noHpPemesan = prefs.getString('no_telepon');
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final totalBayar = widget.kursi.length * widget.harga;
 
     return Scaffold(
-      resizeToAvoidBottomInset: true, // ✅ PENTING
-       appBar: const AppBarCustom(title: 'Pembayaran'),
-
+      resizeToAvoidBottomInset: true,
+      appBar: const AppBarCustom(title: 'Detail Penumpang'),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            /// INFORMASI PEMESANAN
+            /// ================= INFORMASI PEMESANAN =================
             Card(
               elevation: 3,
               shape: RoundedRectangleBorder(
@@ -112,10 +122,72 @@ class _HalamanPembayaranUserState extends State<HalamanPembayaranUser> {
                 ),
               ),
             ),
+            const SizedBox(height: 16),
+
+            Card(
+              elevation: 3,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Akun Pemesan",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.account_circle,
+                          size: 40,
+                          color: Colors.blueGrey,
+                        ),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.email,
+                                  size: 16,
+                                  color: Colors.black54,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(emailPemesan ?? "-"),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.phone,
+                                  size: 16,
+                                  color: Colors.black54,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(noHpPemesan ?? "-"),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
 
             const SizedBox(height: 24),
 
-            /// DETAIL PENUMPANG
+            /// ================= DETAIL PENUMPANG =================
             const Text(
               "Detail Penumpang",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -195,7 +267,7 @@ class _HalamanPembayaranUserState extends State<HalamanPembayaranUser> {
         ),
       ),
 
-      /// TOMBOL BAWAH
+      /// ================= TOMBOL LANJUT =================
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -210,7 +282,6 @@ class _HalamanPembayaranUserState extends State<HalamanPembayaranUser> {
                 ),
               ),
               onPressed: () async {
-                // ✅ KUNCI UTAMA
                 FocusScope.of(context).unfocus();
 
                 final namaPenumpangList = namaControllers
@@ -264,10 +335,6 @@ class _HalamanPembayaranUserState extends State<HalamanPembayaranUser> {
                   },
                 );
 
-                final parsedTanggal = DateFormat(
-                  'dd MMMM yyyy',
-                  'id',
-                ).parse(widget.tanggal);
 
                 Navigator.push(
                   context,
@@ -275,7 +342,7 @@ class _HalamanPembayaranUserState extends State<HalamanPembayaranUser> {
                     builder: (_) => HalamanKonfirmasiPembayaran(
                       dari: widget.dari,
                       ke: widget.ke,
-                      tanggal: DateFormat('yyyy-MM-dd').format(parsedTanggal),
+                      tanggal: widget.tanggal,
                       jamKeberangkatan: widget.jamKeberangkatan,
                       totalBayar: totalBayar,
                       detailPenumpang: detailPenumpang,

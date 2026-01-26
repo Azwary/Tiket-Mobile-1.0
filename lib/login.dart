@@ -161,7 +161,7 @@ class _LoginState extends State<Login> {
 
                   // TITLE
                   Text(
-                    "Selamat Datang di Fifafel Trans",
+                    "Fifafel Trans",
                     textAlign: TextAlign.center,
                     style: GoogleFonts.poppins(
                       fontSize: 20,
@@ -173,7 +173,7 @@ class _LoginState extends State<Login> {
 
                   // SUBTITLE
                   Text(
-                    "Silakan masukkan username dan password Anda",
+                    "Silakan masukkan username dan password",
                     textAlign: TextAlign.center,
                     style: GoogleFonts.poppins(
                       fontSize: 13,

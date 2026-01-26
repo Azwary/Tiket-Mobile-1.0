@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'HalamanPembayaranUser.dart';
-import 'package:tiket/core/app_bar_costum.dart';
+import 'package:tiket/core/app_bar_costum2.dart';
 
 class HalamanPilihKursiUser extends StatefulWidget {
   final String dari;
@@ -14,6 +15,7 @@ class HalamanPilihKursiUser extends StatefulWidget {
   final int harga;
   final int idRute;
   final Map<String, dynamic> jadwalData;
+  final int jumlahPenumpang;
 
   const HalamanPilihKursiUser({
     super.key,
@@ -25,6 +27,7 @@ class HalamanPilihKursiUser extends StatefulWidget {
     required this.harga,
     required this.idRute,
     required this.jadwalData,
+    required this.jumlahPenumpang,
   });
 
   @override
@@ -63,97 +66,86 @@ class _HalamanPilihKursiUserState extends State<HalamanPilihKursiUser> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const AppBarCustom(title: 'Pilih Kursi'),
-
+      appBar: AppBarCustom2(
+        title: "Pilih Kursi",
+        subtitle:
+            "${widget.jamKeberangkatan} • ${widget.dari} → ${widget.ke} • ${widget.jumlahPenumpang} org",
+      ),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Rute: ${widget.dari} → ${widget.ke}',
-              style: GoogleFonts.poppins(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
+            // ===== LEGEND (DIPERBAIKI) =====
+            Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _legendItem(Colors.green, 'Tersedia'),
+                  const SizedBox(width: 16),
+                  _legendItem(Colors.grey, 'Tidak tersedia'),
+                  const SizedBox(width: 16),
+                  _legendItem(Colors.blue, 'Dipilih'),
+                ],
               ),
             ),
-            Text('Jam: ${widget.jamKeberangkatan}', style: GoogleFonts.inter()),
-            Text('Tanggal: ${widget.tanggal}', style: GoogleFonts.inter()),
-            const SizedBox(height: 20),
 
-            // Legend
-            Row(
-              children: [
-                const Icon(Icons.square, color: Colors.green, size: 16),
-                const SizedBox(width: 4),
-                Text('Tersedia', style: GoogleFonts.inter()),
-                const SizedBox(width: 16),
-                const Icon(Icons.square, color: Colors.grey, size: 16),
-                const SizedBox(width: 4),
-                Text('Tidak tersedia', style: GoogleFonts.inter()),
-                const SizedBox(width: 16),
-                const Icon(Icons.square, color: Colors.blue, size: 16),
-                const SizedBox(width: 4),
-                Text('Dipilih', style: GoogleFonts.inter()),
-              ],
-            ),
+            // jarak diperlebar agar kursi lebih "bernapas"
+            const SizedBox(height: 18),
 
-            const SizedBox(height: 10),
-
-            // Seat layout
             Expanded(
-              child: Center(
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: const [
-                      BoxShadow(color: Colors.black12, blurRadius: 4),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: seatLayout.map((row) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: row.map((item) {
-                            if (item == null)
-                              return const SizedBox(width: 50, height: 50);
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: const [
+                    BoxShadow(color: Colors.black12, blurRadius: 4),
+                  ],
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: seatLayout.map((row) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: row.map((item) {
+                          if (item == null) {
+                            return const SizedBox(width: 50, height: 50);
+                          }
 
-                            if (item == 'steering') {
-                              return Container(
-                                width: 50,
-                                height: 50,
-                                margin: const EdgeInsets.all(6),
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  color: Colors.black12,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: const Icon(
-                                  Icons.rotate_right, // ikon setir
-                                  size: 28,
-                                  color: Colors.black54,
-                                ),
-                              );
-                            }
+                          if (item == 'steering') {
+                            return Container(
+                              width: 50,
+                              height: 50,
+                              margin: const EdgeInsets.all(6),
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: Colors.black12,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(
+                                MdiIcons.steering,
+                                size: 40,
+                                color: Colors.black87,
+                              ),
+                            );
+                          }
 
-                            return buildSeat(item as int);
-                          }).toList(),
-                        ),
-                      );
-                    }).toList(),
-                  ),
+                          return buildSeat(item as int);
+                        }).toList(),
+                      ),
+                    );
+                  }).toList(),
                 ),
               ),
             ),
 
             const SizedBox(height: 20),
 
-            // Total harga
+            // ===== TOTAL HARGA =====
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -167,13 +159,14 @@ class _HalamanPilihKursiUserState extends State<HalamanPilihKursiUser> {
                 ),
               ],
             ),
+
             const SizedBox(height: 10),
 
-            // Tombol lanjut
+            // ===== TOMBOL LANJUT =====
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: kursiDipilih.isNotEmpty
+                onPressed: kursiDipilih.length == widget.jumlahPenumpang
                     ? () async {
                         final kursiDipilihUrut = [...kursiDipilih]..sort();
 
@@ -202,7 +195,7 @@ class _HalamanPilihKursiUserState extends State<HalamanPilihKursiUser> {
                       }
                     : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: kursiDipilih.isNotEmpty
+                  backgroundColor: kursiDipilih.length == widget.jumlahPenumpang
                       ? const Color.fromARGB(255, 150, 0, 0)
                       : Colors.grey,
                   shape: RoundedRectangleBorder(
@@ -227,6 +220,7 @@ class _HalamanPilihKursiUserState extends State<HalamanPilihKursiUser> {
     );
   }
 
+  // ===== WIDGET KURSI =====
   Widget buildSeat(int seatNumber) {
     final isUnavailable = kursiTerpesan.contains(seatNumber);
     final isSelected = kursiDipilih.contains(seatNumber);
@@ -248,6 +242,15 @@ class _HalamanPilihKursiUserState extends State<HalamanPilihKursiUser> {
                 if (isSelected) {
                   kursiDipilih.remove(seatNumber);
                 } else {
+                  if (kursiDipilih.length >= widget.jumlahPenumpang) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Jumlah kursi sudah sesuai penumpang'),
+                        duration: Duration(seconds: 1),
+                      ),
+                    );
+                    return;
+                  }
                   kursiDipilih.add(seatNumber);
                 }
               });
@@ -269,6 +272,24 @@ class _HalamanPilihKursiUserState extends State<HalamanPilihKursiUser> {
           ),
         ),
       ),
+    );
+  }
+
+  // ===== LEGEND ITEM =====
+  Widget _legendItem(Color color, String label) {
+    return Row(
+      children: [
+        Container(
+          width: 18,
+          height: 18,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(label, style: GoogleFonts.inter(fontSize: 13)),
+      ],
     );
   }
 }
