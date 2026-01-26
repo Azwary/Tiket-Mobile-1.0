@@ -14,71 +14,107 @@ class Footer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: const Border(
-          top: BorderSide(color: Color(0xFFE0E0E0), width: 1),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, -2),
+    return SizedBox(
+      height: 80,
+      child: Stack(
+        alignment: Alignment.bottomCenter,
+        children: [
+          // Bottom bar
+          Container(
+            height: 60,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: const Border(top: BorderSide(color: Color(0xFFE0E0E0))),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, -2),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _item(icon: Icons.home_rounded, label: 'Beranda', index: 0),
+                const SizedBox(width: 60), // ruang tombol tengah
+                _item(icon: Icons.person_rounded, label: 'Profil', index: 2),
+              ],
+            ),
           ),
-        ],
-      ),
-      child: BottomNavigationBar(
-        currentIndex: currentIndex,
-        onTap: onTap,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: primaryColor,
-        unselectedItemColor: Colors.grey.shade600,
-        selectedFontSize: 12,
-        unselectedFontSize: 12,
-        items: [
-          _buildItem(
-            index: 0,
-            icon: Icons.home_rounded,
-            label: 'Beranda',
-          ),
-          _buildItem(
-            index: 1,
-            icon: Icons.confirmation_number_rounded,
-            label: 'Tiket Saya',
-          ),
-          _buildItem(
-            index: 2,
-            icon: Icons.person_rounded,
-            label: 'Profil',
+
+          // Tombol tengah (Tiket)
+          Positioned(
+            bottom: 18,
+            child: GestureDetector(
+              onTap: () => onTap(1),
+              child: Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: primaryColor,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: primaryColor.withOpacity(0.4),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(
+                      Icons.confirmation_number_rounded,
+                      color: Colors.white,
+                      size: 22,
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Tiket',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  BottomNavigationBarItem _buildItem({
-    required int index,
+  Widget _item({
     required IconData icon,
     required String label,
+    required int index,
   }) {
-    final bool isActive = currentIndex == index;
+    final isActive = currentIndex == index;
 
-    return BottomNavigationBarItem(
-      label: label,
-      icon: Container(
-        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 14),
-        decoration: BoxDecoration(
-          color: isActive ? primaryColor.withOpacity(0.15) : Colors.transparent,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Icon(
-          icon,
-          size: 26,
-          color: isActive ? primaryColor : Colors.grey.shade600,
-        ),
+    return GestureDetector(
+      onTap: () => onTap(index),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            icon,
+            color: isActive ? primaryColor : Colors.grey.shade600,
+            size: 26,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: isActive ? primaryColor : Colors.grey.shade600,
+            ),
+          ),
+        ],
       ),
     );
   }

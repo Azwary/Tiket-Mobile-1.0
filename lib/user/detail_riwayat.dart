@@ -19,7 +19,7 @@ class DetailRiwayatPage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FA),
-            appBar: const AppBarCustom(title: 'Detail Riwayat'),
+      appBar: const AppBarCustom( title: 'Detail Riwayat'),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(18),
         child: Column(
