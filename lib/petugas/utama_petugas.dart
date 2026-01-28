@@ -1,7 +1,12 @@
+import 'package:intl/intl.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:google_fonts/google_fonts.dart';
+import 'package:tiket/login.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(
@@ -26,6 +31,9 @@ class HalamanPetugas extends StatefulWidget {
 class _HalamanPetugasState extends State<HalamanPetugas> {
   final String baseUrl = 'https://fifafel.my.id/api/petugas';
 
+  List<int> kursiLocked = [];
+  Timer? kursiTimer;
+
   List<Map<String, dynamic>> ruteList = [];
   List<Map<String, dynamic>> jadwalList = [];
   List<int> kursiTersedia = [];
@@ -49,25 +57,28 @@ class _HalamanPetugasState extends State<HalamanPetugas> {
   ];
 
   String get formattedDate {
-    if (selectedDate == null) return 'dd-mm-yyyy';
-    return '${selectedDate!.day.toString().padLeft(2, '0')}-'
-        '${selectedDate!.month.toString().padLeft(2, '0')}-'
-        '${selectedDate!.year}';
+    if (selectedDate == null) return 'Pilih tanggal';
+    return DateFormat('d MMMM yyyy', 'id').format(selectedDate!);
   }
 
   String get formattedDateForApi {
     if (selectedDate == null) return '0000-00-00';
-    return '${selectedDate!.year}-'
-        '${selectedDate!.month.toString().padLeft(2, '0')}-'
-        '${selectedDate!.day.toString().padLeft(2, '0')}';
+    return DateFormat('yyyy-MM-dd').format(selectedDate!);
   }
 
   bool get isFormValid =>
       selectedRute != null && selectedDate != null && selectedJamId != null;
 
   @override
+  void dispose() {
+    kursiTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
   void initState() {
     super.initState();
+    initializeDateFormatting('id', null);
     fetchRute();
   }
 
@@ -100,25 +111,20 @@ class _HalamanPetugasState extends State<HalamanPetugas> {
   ) async {
     final url =
         '$baseUrl/kursi/tersedia?rute=$ruteId&tanggal=$tanggal&jam=$jamId';
+
     final response = await http.get(Uri.parse(url));
+
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
-      final kursiData = List<Map<String, dynamic>>.from(data['data']);
+
       setState(() {
-        kursiTersedia = kursiData
-            .where((k) => k['status'] == 'kosong')
-            .map<int>((k) => int.parse(k['no_kursi'].toString()))
+        kursiTersedia = (data['tersedia'] as List<dynamic>)
+            .map((e) => int.parse(e.toString()))
             .toList();
 
-        noToIdKursi = {
-          for (var k in kursiData)
-            int.parse(k['no_kursi'].toString()): int.parse(
-              k['id_kursi'].toString(),
-            ),
-        };
-
-        selectedSeats.clear();
-        penumpangPerKursi.clear();
+        kursiLocked = (data['locked'] as List<dynamic>)
+            .map((e) => int.parse(e.toString()))
+            .toList();
       });
     }
   }
@@ -177,6 +183,51 @@ class _HalamanPetugasState extends State<HalamanPetugas> {
     }
   }
 
+  void logout() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Logout"),
+        content: const Text("Yakin ingin keluar dari aplikasi?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Batal"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              Navigator.pop(context);
+
+              // 🔥 hapus session login
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.clear();
+
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const Login(), // ✅ BENAR
+                ),
+              );
+            },
+            child: const Text("Logout"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void startAutoRefresh() {
+    kursiTimer?.cancel();
+
+    kursiTimer = Timer.periodic(const Duration(seconds: 2), (_) {
+      if (!mounted) return;
+      if (!isFormValid || !showDenah) return;
+
+      fetchKursiTersedia(selectedRute!, formattedDateForApi, selectedJamId!);
+    });
+  }
+
   void toggleKursi(int nomor) {
     setState(() {
       if (selectedSeats.contains(nomor)) {
@@ -196,19 +247,23 @@ class _HalamanPetugasState extends State<HalamanPetugas> {
     }
 
     final isSelected = selectedSeats.contains(nomor);
+    final isLocked = kursiLocked.contains(nomor);
     final isAvailable = kursiTersedia.contains(nomor);
 
     Color warnaKursi;
-    if (!isAvailable) {
-      warnaKursi = Colors.grey;
+
+    if (isLocked) {
+      warnaKursi = Colors.grey; // ⏳ LOCKED SEMENTARA
+    } else if (!isAvailable) {
+      warnaKursi = Colors.grey; // ❌ TERISI
     } else if (isSelected) {
-      warnaKursi = Colors.blue;
+      warnaKursi = Colors.blue; // 🔵 DIPILIH
     } else {
-      warnaKursi = Colors.green;
+      warnaKursi = Colors.green; // ✅ TERSEDIA
     }
 
     return GestureDetector(
-      onTap: isAvailable ? () => toggleKursi(nomor) : null,
+      onTap: (isAvailable && !isLocked) ? () => toggleKursi(nomor) : null,
       child: Container(
         alignment: Alignment.center,
         margin: const EdgeInsets.all(4),
@@ -275,7 +330,7 @@ class _HalamanPetugasState extends State<HalamanPetugas> {
             const SizedBox(width: 16),
             _buildLegend(Colors.green, "Tersedia"),
             const SizedBox(width: 16),
-            _buildLegend(Colors.grey, "Tidak Tersedia"),
+            _buildLegend(Colors.grey, "Terisi / Locked"),
           ],
         ),
         const SizedBox(height: 12),
@@ -369,7 +424,15 @@ class _HalamanPetugasState extends State<HalamanPetugas> {
             ),
           ],
         ),
+        actions: [
+          IconButton(
+            tooltip: 'Logout',
+            icon: const Icon(Icons.logout, color: Colors.white),
+            onPressed: logout,
+          ),
+        ],
       ),
+
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -585,14 +648,20 @@ class _HalamanPetugasState extends State<HalamanPetugas> {
                         ),
                         onPressed: isFormValid
                             ? () {
+                                selectedSeats.clear();
+                                penumpangPerKursi.clear();
+
                                 fetchKursiTersedia(
                                   selectedRute!,
                                   formattedDateForApi,
                                   selectedJamId!,
                                 );
+
                                 setState(() {
                                   showDenah = true;
                                 });
+
+                                startAutoRefresh();
                               }
                             : null,
                         child: const Text(
