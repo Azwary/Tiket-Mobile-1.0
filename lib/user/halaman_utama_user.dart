@@ -41,22 +41,21 @@ class MyApp extends StatelessWidget {
         ),
         textTheme: GoogleFonts.poppinsTextTheme(),
       ),
-      home: HalamanUtamaUser(key: HalamanUtamaUser.globalKey),
     );
   }
 }
 
 class HalamanUtamaUser extends StatefulWidget {
-  const HalamanUtamaUser({super.key});
+  final int initialIndex;
 
-  static final globalKey = GlobalKey<_HalamanUtamaUserState>();
+  const HalamanUtamaUser({super.key, this.initialIndex = 0});
 
   @override
   State<HalamanUtamaUser> createState() => _HalamanUtamaUserState();
 }
 
 class _HalamanUtamaUserState extends State<HalamanUtamaUser> {
-  int currentIndex = 0;
+  late int currentIndex;
   int? idPenumpang;
   int jumlahPenumpang = 1;
   String? namaUser;
@@ -83,6 +82,7 @@ class _HalamanUtamaUserState extends State<HalamanUtamaUser> {
   @override
   void initState() {
     super.initState();
+    currentIndex = widget.initialIndex;
     getIdPenumpang();
     fetchRute();
   }

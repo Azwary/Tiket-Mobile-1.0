@@ -148,7 +148,6 @@ class _HalamanKonfirmasiPembayaranState
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
 
-
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = json.decode(response.body);
         if (data['status'] == true) {
@@ -227,10 +226,13 @@ class _HalamanKonfirmasiPembayaranState
             ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pop(); // tutup dialog
-                Navigator.of(
-                  context,
-                ).popUntil((route) => route.isFirst); // ke halaman utama
-                HalamanUtamaUser.globalKey.currentState?.setTabIndex(1);
+
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(
+                    builder: (_) => const HalamanUtamaUser(initialIndex: 1),
+                  ),
+                  (route) => false,
+                );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF960000),
@@ -299,9 +301,15 @@ class _HalamanKonfirmasiPembayaranState
             ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                Navigator.of(context).popUntil((route) => route.isFirst);
-                HalamanUtamaUser.globalKey.currentState?.setTabIndex(0);
+
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(
+                    builder: (_) => const HalamanUtamaUser(initialIndex: 0),
+                  ),
+                  (route) => false,
+                );
               },
+
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF960000),
                 shape: RoundedRectangleBorder(
@@ -418,12 +426,16 @@ class _HalamanKonfirmasiPembayaranState
                 ),
                 onPressed: () async {
                   await _unlockKursi();
-
                   if (!mounted) return;
 
                   Navigator.of(context).pop(false);
-                  Navigator.of(context).popUntil((route) => route.isFirst);
-                  HalamanUtamaUser.globalKey.currentState?.setTabIndex(0);
+
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(
+                      builder: (_) => const HalamanUtamaUser(initialIndex: 0),
+                    ),
+                    (route) => false,
+                  );
                 },
 
                 child: const Text(
