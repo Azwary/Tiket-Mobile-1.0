@@ -119,7 +119,10 @@ class _TiketSayaPageState extends State<TiketSayaPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
       appBar: AppBar(
-        automaticallyImplyLeading: false,
+        automaticallyImplyLeading: true,
+        iconTheme: const IconThemeData(
+          color: Colors.white, 
+        ),
         title: Text(
           'Tiket Saya',
           style: GoogleFonts.poppins(
@@ -191,7 +194,7 @@ class _TiketSayaPageState extends State<TiketSayaPage> {
                           Navigator.pushAndRemoveUntil(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => const HalamanUtamaUser (),
+                              builder: (_) => const HalamanUtamaUser(),
                             ),
                             (route) => false,
                           );
@@ -232,6 +235,7 @@ class _TiketSayaPageState extends State<TiketSayaPage> {
                         ),
                       );
                     },
+
                     child: Container(
                       margin: const EdgeInsets.only(bottom: 20),
                       decoration: BoxDecoration(

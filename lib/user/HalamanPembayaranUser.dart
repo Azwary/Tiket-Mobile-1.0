@@ -75,6 +75,11 @@ class _HalamanPembayaranUserState extends State<HalamanPembayaranUser> {
     });
   }
 
+  String formatTanggalIndo(String tanggal) {
+    final date = DateTime.parse(tanggal); // 2026-01-28
+    return DateFormat('d MMMM yyyy', 'id').format(date);
+  }
+
   @override
   Widget build(BuildContext context) {
     final totalBayar = widget.kursi.length * widget.harga;
@@ -107,7 +112,7 @@ class _HalamanPembayaranUserState extends State<HalamanPembayaranUser> {
                     ),
                     const SizedBox(height: 12),
                     _infoRow("Rute", "${widget.dari} → ${widget.ke}"),
-                    _infoRow("Tanggal", widget.tanggal),
+                    _infoRow("Tanggal", formatTanggalIndo(widget.tanggal)),
                     _infoRow("Jam", widget.jamKeberangkatan),
                     const Divider(height: 24),
                     Text(
@@ -334,7 +339,6 @@ class _HalamanPembayaranUserState extends State<HalamanPembayaranUser> {
                     "nama": namaPenumpangList[i],
                   },
                 );
-
 
                 Navigator.push(
                   context,

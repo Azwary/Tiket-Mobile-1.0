@@ -1,3 +1,5 @@
+import 'package:intl/intl.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -44,13 +46,25 @@ class _HalamanKonfirmasiPembayaranState
     _startTimer();
   }
 
+  String formatTanggalIndo(String tanggal) {
+    final date = DateTime.parse(tanggal);
+    return DateFormat('d MMMM yyyy', 'id').format(date);
+  }
+
   void _startTimer() {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
       if (_remainingSeconds > 0) {
         setState(() => _remainingSeconds--);
       } else {
-        _timer.cancel();
-        _showWaktuHabisDialog();
+        timer.cancel();
+        if (mounted) {
+          _showWaktuHabisDialog();
+        }
       }
     });
   }
@@ -67,6 +81,7 @@ class _HalamanKonfirmasiPembayaranState
       withData: true,
     );
     if (result != null && result.files.isNotEmpty) {
+      if (!mounted) return;
       setState(() => pickedFile = result.files.first);
     }
   }
@@ -139,7 +154,8 @@ class _HalamanKonfirmasiPembayaranState
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = json.decode(response.body);
         if (data['status'] == true) {
-          _showBuktiTerkirimDialog(idPenumpang);
+          if (!mounted) return;
+          Navigator.pop(context, true);
         } else {
           _showErrorDialog(data['message'] ?? 'Gagal upload bukti pembayaran.');
         }
@@ -232,6 +248,8 @@ class _HalamanKonfirmasiPembayaranState
   }
 
   void _showErrorDialog(String message) {
+    if (!mounted) return;
+
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -247,8 +265,10 @@ class _HalamanKonfirmasiPembayaranState
     );
   }
 
-  void _showWaktuHabisDialog() async {
-    await _unlockKursi(); // unlock otomatis kalau waktu habis
+  Future<void> _showWaktuHabisDialog() async {
+    await _unlockKursi();
+
+    if (!mounted) return;
 
     showDialog(
       context: context,
@@ -283,7 +303,6 @@ class _HalamanKonfirmasiPembayaranState
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF960000),
                 shape: RoundedRectangleBorder(
-                  
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
@@ -310,11 +329,15 @@ class _HalamanKonfirmasiPembayaranState
 
     return WillPopScope(
       onWillPop: () async {
-        await _unlockKursi(); // unlock kursi sebelum keluar
-        return true;
+        return await _showKonfirmasiKembaliDialog();
       },
       child: Scaffold(
-             appBar: const AppBarCustom(title: 'Pembayaran'),
+        appBar: AppBarCustom(
+          title: 'Pembayaran',
+          onBack: () async {
+            await _showKonfirmasiKembaliDialog();
+          },
+        ),
         body: Padding(
           padding: const EdgeInsets.all(16),
           child: ListView(
@@ -368,6 +391,50 @@ class _HalamanKonfirmasiPembayaranState
     );
   }
 
+  Future<bool> _showKonfirmasiKembaliDialog() async {
+    return await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: const Text("Konfirmasi"),
+            content: const Text(
+              "Jika Anda kembali, kursi yang dipilih akan dilepaskan.\n\nLanjutkan?",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(false); // batal
+                },
+                child: const Text("Batal"),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF960000),
+                ),
+                onPressed: () async {
+                  await _unlockKursi();
+
+                  if (!mounted) return;
+
+                  Navigator.of(context).pop(false);
+                  Navigator.of(context).popUntil((route) => route.isFirst);
+                  HalamanUtamaUser.globalKey.currentState?.setTabIndex(0);
+                },
+
+                child: const Text(
+                  "Ya, Kembali",
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+  }
+
   // --- Bagian UI Kartu dan Komponen ---
 
   Widget _buildDetailCard() => _buildCard(
@@ -377,7 +444,7 @@ class _HalamanKonfirmasiPembayaranState
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildRow("Rute", "${widget.dari} → ${widget.ke}"),
-        _buildRow("Tanggal", widget.tanggal),
+        _buildRow("Tanggal", formatTanggalIndo(widget.tanggal)),
         _buildRow("Jam", widget.jamKeberangkatan),
         _buildRow("Jumlah Kursi", "${widget.detailPenumpang.length} kursi"),
         const SizedBox(height: 10),

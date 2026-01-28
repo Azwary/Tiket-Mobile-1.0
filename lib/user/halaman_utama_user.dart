@@ -41,7 +41,7 @@ class MyApp extends StatelessWidget {
         ),
         textTheme: GoogleFonts.poppinsTextTheme(),
       ),
-      home: const HalamanUtamaUser(),
+      home: HalamanUtamaUser(key: HalamanUtamaUser.globalKey),
     );
   }
 }
@@ -60,7 +60,8 @@ class _HalamanUtamaUserState extends State<HalamanUtamaUser> {
   int? idPenumpang;
   int jumlahPenumpang = 1;
   String? namaUser;
-
+  int unreadNotifCount = 0;
+  List<Map<String, dynamic>> notifikasi = [];
   void setTabIndex(int index) {
     setState(() => currentIndex = index);
   }
@@ -94,6 +95,137 @@ class _HalamanUtamaUserState extends State<HalamanUtamaUser> {
     super.dispose();
   }
 
+  void _showNotifikasiDialog() {
+    showDialog(
+      context: context,
+      builder: (_) {
+        return AlertDialog(
+          title: const Text("Notifikasi"),
+          content: notifikasi.isEmpty
+              ? const Text("Tidak ada notifikasi")
+              : SizedBox(
+                  width: double.maxFinite,
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: notifikasi.length,
+                    itemBuilder: (context, i) {
+                      final n = notifikasi[i];
+                      final asalNotif = n['asal'];
+                      final tujuanNotif = n['tujuan'];
+                      final jamNotif = n['jam_keberangkatan'];
+                      final tanggalNotif = n['tanggal_keberangkatan'];
+
+                      final tanggalFormatted = DateFormat(
+                        'dd MMM yyyy',
+                        'id',
+                      ).format(DateTime.parse(tanggalNotif));
+
+                      final status = n['status_konfirmasi'];
+
+                      return Card(
+                        margin: const EdgeInsets.symmetric(vertical: 6),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 3,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: () async {
+                            await _markAsRead(n['id_pembayaran']);
+
+                            if (!mounted) return;
+
+                            setState(() {
+                              notifikasi.removeAt(i);
+                              if (unreadNotifCount > 0) unreadNotifCount--;
+                            });
+
+                            Navigator.pop(context); // ✅ tutup dialog dulu
+
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    TiketSayaPage(idPenumpang: idPenumpang!),
+                              ),
+                            );
+                          },
+
+                          child: Padding(
+                            padding: const EdgeInsets.all(14),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  status == 'berhasil'
+                                      ? Icons.check_circle
+                                      : Icons.cancel,
+                                  color: status == 'berhasil'
+                                      ? Colors.green
+                                      : Colors.red,
+                                  size: 32,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        status == 'berhasil'
+                                            ? "Pembayaran Berhasil"
+                                            : "Pembayaran Ditolak",
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+
+                                      // 🔹 RUTE
+                                      Text(
+                                        "$asalNotif → $tujuanNotif",
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        "$tanggalFormatted • $jamNotif",
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey.shade600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const Icon(
+                                  Icons.chevron_right,
+                                  color: Colors.grey,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text("Tutup"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   PreferredSizeWidget _buildAppBarUser() {
     return AppBar(
       backgroundColor: Colors.white,
@@ -101,15 +233,34 @@ class _HalamanUtamaUserState extends State<HalamanUtamaUser> {
       automaticallyImplyLeading: false,
       title: const SizedBox(), // kiri kosong
       actions: [
-        // 🔔 NOTIFIKASI
-        IconButton(
-          icon: const Icon(Icons.notifications_none_rounded),
-          color: Colors.black87,
-          onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Belum ada notifikasi")),
-            );
-          },
+        Stack(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.notifications_none_rounded),
+              color: Colors.black87,
+              onPressed: _showNotifikasiDialog,
+            ),
+            if (unreadNotifCount > 0)
+              Positioned(
+                right: 8,
+                top: 8,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    unreadNotifCount.toString(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ),
 
         // │ PEMBATAS VERTIKAL
@@ -163,13 +314,52 @@ class _HalamanUtamaUserState extends State<HalamanUtamaUser> {
     );
   }
 
+  Future<void> fetchNotifikasi() async {
+    if (idPenumpang == null) return;
+
+    try {
+      final response = await http.get(
+        Uri.parse(
+          'https://fifafel.my.id/api/pembayaran/notifikasi/$idPenumpang',
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
+        setState(() {
+          notifikasi = List<Map<String, dynamic>>.from(data['data']);
+          unreadNotifCount = notifikasi.length;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error fetch notifikasi: $e");
+    }
+  }
+
+  Future<void> _markAsRead(int idPembayaran) async {
+    try {
+      await http.post(
+        Uri.parse(
+          'https://fifafel.my.id/api/pembayaran/notifikasi/read/$idPembayaran',
+        ),
+      );
+    } catch (e) {
+      debugPrint("Gagal tandai notifikasi dibaca: $e");
+    }
+  }
+
   Future<void> getIdPenumpang() async {
     final prefs = await SharedPreferences.getInstance();
     if (!mounted) return;
+
     setState(() {
       idPenumpang = prefs.getInt('id_penumpang');
       namaUser = prefs.getString('nama_penumpang');
     });
+
+    // ambil notifikasi setelah ID ada
+    await fetchNotifikasi();
   }
 
   Future<void> fetchRute() async {
@@ -318,6 +508,32 @@ class _HalamanUtamaUserState extends State<HalamanUtamaUser> {
             _buildFasilitasCard(Icons.tv, "Televisi Hiburan", Colors.green),
           ]),
           const SizedBox(height: 40),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionCard(String title, List<Widget> children) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 150,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: children,
+            ),
+          ),
         ],
       ),
     );
@@ -659,40 +875,6 @@ class _HalamanUtamaUserState extends State<HalamanUtamaUser> {
     );
   }
 
-  Widget _buildSectionCard(String title, List<Widget> children) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Text(
-                title,
-                style: GoogleFonts.poppins(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 150,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: children,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildFasilitasCard(IconData icon, String text, Color color) {
     return Container(
       width: 120,
@@ -756,7 +938,7 @@ class _HalamanUtamaUserState extends State<HalamanUtamaUser> {
             idRute: int.tryParse(rute['id_rute'].toString()) ?? 0,
             dari: dari!,
             ke: ke!,
-            tanggal: DateFormat('yyyy-MM-dd').format(tanggal!), 
+            tanggal: DateFormat('yyyy-MM-dd').format(tanggal!),
             harga: int.tryParse(rute['harga'].toString()) ?? 0,
             jumlahPenumpang: jumlahPenumpang,
           ),

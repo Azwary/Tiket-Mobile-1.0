@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -38,7 +41,7 @@ class _HalamanPilihKursiUserState extends State<HalamanPilihKursiUser> {
   final List<int> kursiDipilih = [];
   List<int> kursiTerpesan = [];
   final formatter = NumberFormat.decimalPattern();
-
+  Timer? _refreshTimer;
   final List<List<dynamic>> seatLayout = [
     [1, 2, null, 'steering'],
     [null, 3, 4, 5],
@@ -50,7 +53,52 @@ class _HalamanPilihKursiUserState extends State<HalamanPilihKursiUser> {
   @override
   void initState() {
     super.initState();
+
+    // data awal dari halaman sebelumnya
     setKursiTerisiFromApi();
+
+    // fetch terbaru dari API
+    _fetchKursiTerbaru();
+
+    // auto refresh tiap 5 detik
+    _refreshTimer = Timer.periodic(
+      const Duration(seconds: 2),
+      (_) => _fetchKursiTerbaru(),
+    );
+  }
+
+  Future<void> _fetchKursiTerbaru() async {
+    try {
+      final url =
+          'https://fifafel.my.id/api/jadwal'
+          '?rute=${widget.idRute}'
+          '&tanggal=${widget.tanggal}';
+
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+
+        final jadwal = (json['data'] as List).firstWhere(
+          (j) => j['id_jadwal'] == widget.idJadwal,
+          orElse: () => null,
+        );
+
+        if (jadwal == null || !mounted) return;
+
+        final terbaru = (jadwal['kursi'] as List)
+            .where((k) => k['status'] == 'disable' || k['status'] == 'ditolak')
+            .map<int>((k) => int.parse(k['no_kursi'].toString()))
+            .toList();
+
+        setState(() {
+          kursiTerpesan = terbaru;
+          kursiDipilih.removeWhere((k) => kursiTerpesan.contains(k));
+        });
+      }
+    } catch (e) {
+      debugPrint('Gagal refresh kursi: $e');
+    }
   }
 
   void setKursiTerisiFromApi() {
@@ -175,7 +223,7 @@ class _HalamanPilihKursiUserState extends State<HalamanPilihKursiUser> {
                             prefs.getString('nama_penumpang') ?? '';
                         final idUserLogin = prefs.getInt('id_penumpang') ?? 0;
 
-                        Navigator.push(
+                        final result = await Navigator.push<bool>(
                           context,
                           MaterialPageRoute(
                             builder: (context) => HalamanPembayaranUser(
@@ -192,23 +240,30 @@ class _HalamanPilihKursiUserState extends State<HalamanPilihKursiUser> {
                             ),
                           ),
                         );
+
+                        if (!mounted) return; // 🔥 WAJIB & BENAR
+
+                        if (result == true) {
+                          Navigator.pop(
+                            context,
+                            true,
+                          ); // kirim sinyal ke Jadwal
+                        }
                       }
                     : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: kursiDipilih.length == widget.jumlahPenumpang
-                      ? const Color.fromARGB(255, 150, 0, 0)
-                      : Colors.grey,
+                  backgroundColor: const Color.fromARGB(255, 150, 0, 0),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 14),
                   child: Text(
                     'Ringkasan Pemesanan',
-                    style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.bold,
+                    style: TextStyle(
                       color: Colors.white,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
@@ -218,6 +273,12 @@ class _HalamanPilihKursiUserState extends State<HalamanPilihKursiUser> {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
   }
 
   // ===== WIDGET KURSI =====

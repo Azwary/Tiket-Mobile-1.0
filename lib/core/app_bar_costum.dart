@@ -4,8 +4,14 @@ import 'package:google_fonts/google_fonts.dart';
 class AppBarCustom extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final bool showBack;
+  final VoidCallback? onBack; // ⬅️ TAMBAHAN
 
-  const AppBarCustom({super.key, required this.title, this.showBack = true});
+  const AppBarCustom({
+    super.key,
+    required this.title,
+    this.showBack = true,
+    this.onBack,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +28,7 @@ class AppBarCustom extends StatelessWidget implements PreferredSizeWidget {
       leading: showBack
           ? IconButton(
               icon: const Icon(Icons.arrow_back, size: 20),
-              onPressed: () => Navigator.pop(context),
+              onPressed: onBack ?? () => Navigator.pop(context),
             )
           : null,
 

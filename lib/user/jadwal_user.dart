@@ -152,8 +152,8 @@ class _HalamanJadwalUserState extends State<HalamanJadwalUser> {
                   return GestureDetector(
                     onTap: tidakTersedia
                         ? null
-                        : () {
-                            Navigator.push(
+                        : () async {
+                            final result = await Navigator.push<bool>(
                               context,
                               MaterialPageRoute(
                                 builder: (_) => HalamanPilihKursiUser(
@@ -169,7 +169,15 @@ class _HalamanJadwalUserState extends State<HalamanJadwalUser> {
                                 ),
                               ),
                             );
+
+                            if (!mounted) return;
+
+                            if (result == true) {
+                              debugPrint('🔥 REFRESH JADWAL');
+                              await fetchJadwal();
+                            }
                           },
+
                     child: Container(
                       margin: const EdgeInsets.only(bottom: 14),
                       padding: const EdgeInsets.all(14),
