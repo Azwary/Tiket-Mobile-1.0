@@ -1,5 +1,4 @@
 import 'package:intl/intl.dart';
-import 'package:intl/date_symbol_data_local.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -148,16 +147,19 @@ class _HalamanKonfirmasiPembayaranState
 
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
+
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = json.decode(response.body);
         if (data['status'] == true) {
           if (!mounted) return;
-          Navigator.pop(context, true);
-        } else {
-          _showErrorDialog(data['message'] ?? 'Gagal upload bukti pembayaran.');
+
+          final prefs = await SharedPreferences.getInstance();
+          final idPenumpang = prefs.getInt('id_penumpang');
+
+          if (idPenumpang != null) {
+            _showBuktiTerkirimDialog(idPenumpang);
+          }
         }
       } else {
         final data = json.decode(response.body);
